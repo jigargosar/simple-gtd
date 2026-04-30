@@ -94,8 +94,11 @@ function SortableTask({ task }: { task: Task }) {
     >
       <div className="absolute -left-16 top-0 h-full w-16 flex flex-row items-center justify-end gap-1 pr-2 opacity-0 transition-opacity group-hover/task:opacity-100">
         <DragHandle onPointerDown={(e) => controls.start(e)} />
-        <button className="p-2 text-gray-300 hover:text-gray-500 text-sm leading-none rounded">
-          +
+        <button className="p-2 text-gray-300 hover:text-gray-500 rounded">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+            <rect x="4" y="0" width="2" height="10" rx="1" />
+            <rect x="0" y="4" width="10" height="2" rx="1" />
+          </svg>
         </button>
       </div>
       <span
@@ -126,8 +129,11 @@ function SortableSection({
       <div className="group/section-header relative ml-16">
         <div className="absolute -left-16 top-0 h-full w-16 flex flex-row items-center justify-end gap-1 pr-2 opacity-0 transition-opacity group-hover/section-header:opacity-100">
           <DragHandle onPointerDown={(e) => controls.start(e)} />
-          <button className="p-2 text-gray-300 hover:text-gray-500 text-sm leading-none rounded">
-            +
+          <button className="p-2 text-gray-300 hover:text-gray-500 rounded">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+              <rect x="4" y="0" width="2" height="10" rx="1" />
+              <rect x="0" y="4" width="10" height="2" rx="1" />
+            </svg>
           </button>
         </div>
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-400">
