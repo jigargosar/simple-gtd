@@ -13,7 +13,7 @@ type TaskList = {
   tasks: Task[];
 };
 
-const INITIAL_LISTS: TaskList[] = [
+const INITIAL_TASK_LISTS: TaskList[] = [
   {
     id: "inbox",
     title: "Inbox",
@@ -162,28 +162,28 @@ function AppHeader() {
   );
 }
 
-function TaskBoard({
-  lists,
-  onReorderLists,
-  onReorderTasks,
-}: {
-  lists: TaskList[];
-  onReorderLists: (lists: TaskList[]) => void;
-  onReorderTasks: (listId: string, newTasks: Task[]) => void;
-}) {
+function TaskBoard() {
+  const [taskLists, setTaskLists] = useState<TaskList[]>(INITIAL_TASK_LISTS);
+
+  function handleReorderTasks(listId: string, newTasks: Task[]) {
+    setTaskLists((prev) =>
+      prev.map((l) => (l.id === listId ? { ...l, tasks: newTasks } : l)),
+    );
+  }
+
   return (
     <main className="mx-auto max-w-2xl px-6 py-10">
       <Reorder.Group
         axis="y"
-        values={lists}
-        onReorder={onReorderLists}
+        values={taskLists}
+        onReorder={setTaskLists}
         className="space-y-10"
       >
-        {lists.map((list) => (
+        {taskLists.map((list) => (
           <SortableSection
             key={list.id}
             list={list}
-            onReorderTasks={onReorderTasks}
+            onReorderTasks={handleReorderTasks}
           />
         ))}
       </Reorder.Group>
@@ -192,22 +192,10 @@ function TaskBoard({
 }
 
 export default function App() {
-  const [lists, setLists] = useState<TaskList[]>(INITIAL_LISTS);
-
-  function handleReorderTasks(listId: string, newTasks: Task[]) {
-    setLists((prev) =>
-      prev.map((l) => (l.id === listId ? { ...l, tasks: newTasks } : l)),
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
       <AppHeader />
-      <TaskBoard
-        lists={lists}
-        onReorderLists={setLists}
-        onReorderTasks={handleReorderTasks}
-      />
+      <TaskBoard />
     </div>
   );
 }
