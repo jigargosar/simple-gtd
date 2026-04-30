@@ -1,158 +1,185 @@
-import { useState } from 'react'
-import { Reorder, useDragControls } from 'motion/react'
+import { useState } from "react";
+import { Reorder, useDragControls } from "motion/react";
 
 type Task = {
-    id: number
-    title: string
-    done: boolean
-}
+  id: number;
+  title: string;
+  done: boolean;
+};
 
 type TaskList = {
-    id: string
-    title: string
-    tasks: Task[]
-}
+  id: string;
+  title: string;
+  tasks: Task[];
+};
 
 const INITIAL_LISTS: TaskList[] = [
-    {
-        id: 'inbox',
-        title: 'Inbox',
-        tasks: [
-            { id: 1, title: 'Read article on deep work', done: false },
-            { id: 2, title: "Reply to Sarah's email", done: false },
-            { id: 3, title: 'Look into new invoicing tool', done: false },
-        ],
-    },
-    {
-        id: 'next',
-        title: 'Next Actions',
-        tasks: [
-            { id: 4, title: 'Write project proposal', done: false },
-            { id: 5, title: 'Book dentist appointment', done: true },
-            { id: 6, title: 'Review pull request #42', done: false },
-        ],
-    },
-    {
-        id: 'projects',
-        title: 'Projects',
-        tasks: [
-            { id: 7, title: 'Launch SimpleGTD v1', done: false },
-            { id: 8, title: 'Migrate database to Postgres', done: false },
-            { id: 9, title: 'Redesign onboarding flow', done: true },
-        ],
-    },
-    {
-        id: 'waiting',
-        title: 'Waiting For',
-        tasks: [
-            { id: 10, title: 'Contract signature from client', done: false },
-            { id: 11, title: 'Design assets from Priya', done: false },
-        ],
-    },
-    {
-        id: 'someday',
-        title: 'Someday / Maybe',
-        tasks: [
-            { id: 12, title: 'Learn Rust', done: false },
-            { id: 13, title: 'Build a keyboard', done: false },
-            { id: 14, title: 'Read Thinking Fast and Slow', done: false },
-        ],
-    },
-]
+  {
+    id: "inbox",
+    title: "Inbox",
+    tasks: [
+      { id: 1, title: "Read article on deep work", done: false },
+      { id: 2, title: "Reply to Sarah's email", done: false },
+      { id: 3, title: "Look into new invoicing tool", done: false },
+    ],
+  },
+  {
+    id: "next",
+    title: "Next Actions",
+    tasks: [
+      { id: 4, title: "Write project proposal", done: false },
+      { id: 5, title: "Book dentist appointment", done: true },
+      { id: 6, title: "Review pull request #42", done: false },
+    ],
+  },
+  {
+    id: "projects",
+    title: "Projects",
+    tasks: [
+      { id: 7, title: "Launch SimpleGTD v1", done: false },
+      { id: 8, title: "Migrate database to Postgres", done: false },
+      { id: 9, title: "Redesign onboarding flow", done: true },
+    ],
+  },
+  {
+    id: "waiting",
+    title: "Waiting For",
+    tasks: [
+      { id: 10, title: "Contract signature from client", done: false },
+      { id: 11, title: "Design assets from Priya", done: false },
+    ],
+  },
+  {
+    id: "someday",
+    title: "Someday / Maybe",
+    tasks: [
+      { id: 12, title: "Learn Rust", done: false },
+      { id: 13, title: "Build a keyboard", done: false },
+      { id: 14, title: "Read Thinking Fast and Slow", done: false },
+    ],
+  },
+];
 
-function DragHandle({ onPointerDown }: { onPointerDown: (e: React.PointerEvent) => void }) {
-    return (
-        <button
-            onPointerDown={onPointerDown}
-            className="p-2 cursor-grab text-gray-300 hover:text-gray-500 touch-none rounded"
-        >
-            <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
-                <circle cx="2" cy="2" r="1.5" />
-                <circle cx="8" cy="2" r="1.5" />
-                <circle cx="2" cy="7" r="1.5" />
-                <circle cx="8" cy="7" r="1.5" />
-                <circle cx="2" cy="12" r="1.5" />
-                <circle cx="8" cy="12" r="1.5" />
-            </svg>
-        </button>
-    )
+function DragHandle({
+  onPointerDown,
+}: {
+  onPointerDown: (e: React.PointerEvent) => void;
+}) {
+  return (
+    <button
+      onPointerDown={onPointerDown}
+      className="p-2 cursor-grab text-gray-300 hover:text-gray-500 touch-none rounded"
+    >
+      <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
+        <circle cx="2" cy="2" r="1.5" />
+        <circle cx="8" cy="2" r="1.5" />
+        <circle cx="2" cy="7" r="1.5" />
+        <circle cx="8" cy="7" r="1.5" />
+        <circle cx="2" cy="12" r="1.5" />
+        <circle cx="8" cy="12" r="1.5" />
+      </svg>
+    </button>
+  );
 }
 
 function SortableTask({ task }: { task: Task }) {
-    const controls = useDragControls()
+  const controls = useDragControls();
 
-    return (
-        <Reorder.Item value={task} dragListener={false} dragControls={controls} className="group/task relative">
-            <div className="absolute -left-16 top-0 h-full w-16 flex flex-row items-center justify-end gap-1 pr-2 opacity-0 transition-opacity group-hover/task:opacity-100">
-                <DragHandle onPointerDown={e => controls.start(e)} />
-                <button className="p-2 text-gray-300 hover:text-gray-500 text-sm leading-none rounded">
-                    +
-                </button>
-            </div>
-            <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3">
-                <span className={`flex-1 text-sm ${task.done ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
-                    {task.title}
-                </span>
-            </div>
-        </Reorder.Item>
-    )
+  return (
+    <Reorder.Item
+      value={task}
+      dragListener={false}
+      dragControls={controls}
+      className="group/task relative"
+    >
+      <div className="absolute -left-16 top-0 h-full w-16 flex flex-row items-center justify-end gap-1 pr-2 opacity-0 transition-opacity group-hover/task:opacity-100">
+        <DragHandle onPointerDown={(e) => controls.start(e)} />
+        <button className="p-2 text-gray-300 hover:text-gray-500 text-sm leading-none rounded">
+          +
+        </button>
+      </div>
+      <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3">
+        <span
+          className={`flex-1 text-sm ${task.done ? "text-gray-400 line-through" : "text-gray-900"}`}
+        >
+          {task.title}
+        </span>
+      </div>
+    </Reorder.Item>
+  );
 }
 
 function SortableSection({
-    list,
-    onReorderTasks,
+  list,
+  onReorderTasks,
 }: {
-    list: TaskList
-    onReorderTasks: (listId: string, newTasks: Task[]) => void
+  list: TaskList;
+  onReorderTasks: (listId: string, newTasks: Task[]) => void;
 }) {
-    const controls = useDragControls()
+  const controls = useDragControls();
 
-    return (
-        <Reorder.Item value={list} dragListener={false} dragControls={controls} as="section">
-            <div className="group/section-header relative ml-16">
-                <div className="absolute -left-16 top-0 h-full w-16 flex flex-row items-center justify-end gap-1 pr-2 opacity-0 transition-opacity group-hover/section-header:opacity-100">
-                    <DragHandle onPointerDown={e => controls.start(e)} />
-                    <button className="p-2 text-gray-300 hover:text-gray-500 text-sm leading-none rounded">
-                        +
-                    </button>
-                </div>
-                <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-400">
-                    {list.title}
-                </h2>
-            </div>
-            <Reorder.Group
-                axis="y"
-                values={list.tasks}
-                onReorder={newTasks => onReorderTasks(list.id, newTasks)}
-                className="ml-16 space-y-2"
-            >
-                {list.tasks.map(task => (
-                    <SortableTask key={task.id} task={task} />
-                ))}
-            </Reorder.Group>
-        </Reorder.Item>
-    )
+  return (
+    <Reorder.Item
+      value={list}
+      dragListener={false}
+      dragControls={controls}
+      as="section"
+    >
+      <div className="group/section-header relative ml-16">
+        <div className="absolute -left-16 top-0 h-full w-16 flex flex-row items-center justify-end gap-1 pr-2 opacity-0 transition-opacity group-hover/section-header:opacity-100">
+          <DragHandle onPointerDown={(e) => controls.start(e)} />
+          <button className="p-2 text-gray-300 hover:text-gray-500 text-sm leading-none rounded">
+            +
+          </button>
+        </div>
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-400">
+          {list.title}
+        </h2>
+      </div>
+      <Reorder.Group
+        axis="y"
+        values={list.tasks}
+        onReorder={(newTasks) => onReorderTasks(list.id, newTasks)}
+        className="ml-16 space-y-2"
+      >
+        {list.tasks.map((task) => (
+          <SortableTask key={task.id} task={task} />
+        ))}
+      </Reorder.Group>
+    </Reorder.Item>
+  );
 }
 
 export default function App() {
-    const [lists, setLists] = useState<TaskList[]>(INITIAL_LISTS)
+  const [lists, setLists] = useState<TaskList[]>(INITIAL_LISTS);
 
-    function handleReorderTasks(listId: string, newTasks: Task[]) {
-        setLists(prev => prev.map(l => (l.id === listId ? { ...l, tasks: newTasks } : l)))
-    }
+  function handleReorderTasks(listId: string, newTasks: Task[]) {
+    setLists((prev) =>
+      prev.map((l) => (l.id === listId ? { ...l, tasks: newTasks } : l)),
+    );
+  }
 
-    return (
-        <div className="min-h-screen bg-gray-50 text-gray-900">
-            <header className="border-b border-gray-200 bg-white px-6 py-4">
-                <h1 className="text-xl font-semibold tracking-tight">SimpleGTD</h1>
-            </header>
-            <main className="mx-auto max-w-2xl px-6 py-10">
-                <Reorder.Group axis="y" values={lists} onReorder={setLists} className="space-y-10">
-                    {lists.map(list => (
-                        <SortableSection key={list.id} list={list} onReorderTasks={handleReorderTasks} />
-                    ))}
-                </Reorder.Group>
-            </main>
-        </div>
-    )
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-900">
+      <header className="border-b border-gray-200 bg-white px-6 py-4">
+        <h1 className="text-xl font-semibold tracking-tight">SimpleGTD</h1>
+      </header>
+      <main className="mx-auto max-w-2xl px-6 py-10">
+        <Reorder.Group
+          axis="y"
+          values={lists}
+          onReorder={setLists}
+          className="space-y-10"
+        >
+          {lists.map((list) => (
+            <SortableSection
+              key={list.id}
+              list={list}
+              onReorderTasks={handleReorderTasks}
+            />
+          ))}
+        </Reorder.Group>
+      </main>
+    </div>
+  );
 }
