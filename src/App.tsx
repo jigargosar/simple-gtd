@@ -111,17 +111,17 @@ function SortableTask({ task }: { task: Task }) {
 }
 
 function SortableSection({
-  list,
+  taskList,
   onReorderTasks,
 }: {
-  list: TaskList;
-  onReorderTasks: (listId: string, newTasks: Task[]) => void;
+  taskList: TaskList;
+  onReorderTasks: (taskListId: string, tasks: Task[]) => void;
 }) {
   const controls = useDragControls();
 
   return (
     <Reorder.Item
-      value={list}
+      value={taskList}
       dragListener={false}
       dragControls={controls}
       as="section"
@@ -137,16 +137,16 @@ function SortableSection({
           </button>
         </div>
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-400">
-          {list.title}
+          {taskList.title}
         </h2>
       </div>
       <Reorder.Group
         axis="y"
-        values={list.tasks}
-        onReorder={(newTasks) => onReorderTasks(list.id, newTasks)}
+        values={taskList.tasks}
+        onReorder={(tasks) => onReorderTasks(taskList.id, tasks)}
         className="ml-16 space-y-2"
       >
-        {list.tasks.map((task) => (
+        {taskList.tasks.map((task) => (
           <SortableTask key={task.id} task={task} />
         ))}
       </Reorder.Group>
@@ -165,9 +165,11 @@ function AppHeader() {
 function TaskBoard() {
   const [taskLists, setTaskLists] = useState<TaskList[]>(INITIAL_TASK_LISTS);
 
-  function handleReorderTasks(listId: string, newTasks: Task[]) {
+  function handleReorderTasks(taskListId: string, tasks: Task[]) {
     setTaskLists((prev) =>
-      prev.map((l) => (l.id === listId ? { ...l, tasks: newTasks } : l)),
+      prev.map((taskList) =>
+        taskList.id === taskListId ? { ...taskList, tasks } : taskList,
+      ),
     );
   }
 
@@ -179,10 +181,10 @@ function TaskBoard() {
         onReorder={setTaskLists}
         className="space-y-10"
       >
-        {taskLists.map((list) => (
+        {taskLists.map((taskList) => (
           <SortableSection
-            key={list.id}
-            list={list}
+            key={taskList.id}
+            taskList={taskList}
             onReorderTasks={handleReorderTasks}
           />
         ))}
