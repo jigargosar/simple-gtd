@@ -1,3 +1,17 @@
+import { useState } from 'react'
+import {
+    DndContext,
+    type DragEndEvent,
+    PointerSensor,
+    type UniqueIdentifier,
+    closestCenter,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
+import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+
 type Task = {
     id: number
     title: string
@@ -10,7 +24,7 @@ type TaskList = {
     tasks: Task[]
 }
 
-const LISTS: TaskList[] = [
+const INITIAL_LISTS: TaskList[] = [
     {
         id: 'inbox',
         title: 'Inbox',
@@ -70,51 +84,135 @@ function DragHandle() {
     )
 }
 
+function SortableTask({ task }: { task: Task }) {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id: task.id,
+        data: { type: 'task' },
+    })
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
+            className="group/task relative"
+        >
+            <div className="absolute -left-8 top-0 h-full w-8 flex flex-col items-center justify-center gap-1 opacity-0 group-hover/task:opacity-100 transition-opacity">
+                <button
+                    {...attributes}
+                    {...listeners}
+                    className="cursor-grab text-gray-300 hover:text-gray-500 touch-none"
+                >
+                    <DragHandle />
+                </button>
+                <button className="text-gray-300 hover:text-gray-500 text-base leading-none">
+                    +
+                </button>
+            </div>
+            <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3">
+                <span className={`flex-1 text-sm ${task.done ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                    {task.title}
+                </span>
+            </div>
+        </div>
+    )
+}
+
+function SortableSection({ list }: { list: TaskList }) {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+        id: list.id,
+        data: { type: 'section' },
+    })
+
+    const taskIds: UniqueIdentifier[] = list.tasks.map(t => t.id)
+
+    return (
+        <section
+            ref={setNodeRef}
+            style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
+            className="group/section"
+        >
+            <div className="relative ml-8">
+                <div className="absolute -left-8 top-0 h-full w-8 flex flex-col items-center justify-center gap-1 opacity-0 group-hover/section:opacity-100 transition-opacity">
+                    <button
+                        {...attributes}
+                        {...listeners}
+                        className="cursor-grab text-gray-300 hover:text-gray-500 touch-none"
+                    >
+                        <DragHandle />
+                    </button>
+                    <button className="text-gray-300 hover:text-gray-500 text-base leading-none">
+                        +
+                    </button>
+                </div>
+                <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-400">
+                    {list.title}
+                </h2>
+            </div>
+            <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+                <div className="ml-8 space-y-2">
+                    {list.tasks.map(task => (
+                        <SortableTask key={task.id} task={task} />
+                    ))}
+                </div>
+            </SortableContext>
+        </section>
+    )
+}
+
 export default function App() {
+    const [lists, setLists] = useState<TaskList[]>(INITIAL_LISTS)
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    )
+
+    function handleDragEnd(event: DragEndEvent) {
+        const { active, over } = event
+        if (!over || active.id === over.id) return
+
+        const activeData = active.data.current
+        const activeType = typeof activeData?.['type'] === 'string' ? activeData['type'] : undefined
+
+        if (activeType === 'section') {
+            setLists(prev => {
+                const oldIndex = prev.findIndex(l => l.id === active.id)
+                const newIndex = prev.findIndex(l => l.id === over.id)
+                if (oldIndex === -1 || newIndex === -1) return prev
+                return arrayMove(prev, oldIndex, newIndex)
+            })
+        } else if (activeType === 'task') {
+            setLists(prev =>
+                prev.map(list => {
+                    const oldIndex = list.tasks.findIndex(t => t.id === active.id)
+                    if (oldIndex === -1) return list
+                    const newIndex = list.tasks.findIndex(t => t.id === over.id)
+                    if (newIndex === -1) return list
+                    return { ...list, tasks: arrayMove(list.tasks, oldIndex, newIndex) }
+                })
+            )
+        }
+    }
+
+    const listIds: UniqueIdentifier[] = lists.map(l => l.id)
+
     return (
         <div className="min-h-screen bg-gray-50 text-gray-900">
             <header className="border-b border-gray-200 bg-white px-6 py-4">
                 <h1 className="text-xl font-semibold tracking-tight">SimpleGTD</h1>
             </header>
-
             <main className="mx-auto max-w-2xl px-6 py-10 space-y-10">
-                {LISTS.map(list => (
-                    <section key={list.id} className="group/section">
-                        <div className="relative ml-8">
-                            <div className="absolute -left-8 top-0 h-full w-8 flex flex-col items-center justify-center gap-1 opacity-0 group-hover/section:opacity-100 transition-opacity">
-                                <button className="cursor-grab text-gray-300 hover:text-gray-500">
-                                    <DragHandle />
-                                </button>
-                                <button className="text-gray-300 hover:text-gray-500 text-base leading-none">
-                                    +
-                                </button>
-                            </div>
-                            <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-400">
-                                {list.title}
-                            </h2>
-                        </div>
-                        <div className="ml-8 space-y-2">
-                            {list.tasks.map(task => (
-                                <div key={task.id} className="group/task relative">
-                                    <div className="absolute -left-8 top-0 h-full w-8 flex flex-col items-center justify-center gap-1 opacity-0 group-hover/task:opacity-100 transition-opacity">
-                                        <button className="cursor-grab text-gray-300 hover:text-gray-500">
-                                            <DragHandle />
-                                        </button>
-                                        <button className="text-gray-300 hover:text-gray-500 text-base leading-none">
-                                            +
-                                        </button>
-                                    </div>
-                                    <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3">
-                                        <span className={`flex-1 text-sm ${task.done ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
-                                            {task.title}
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </section>
-
-                ))}
+                <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    modifiers={[restrictToVerticalAxis]}
+                    onDragEnd={handleDragEnd}
+                >
+                    <SortableContext items={listIds} strategy={verticalListSortingStrategy}>
+                        {lists.map(list => (
+                            <SortableSection key={list.id} list={list} />
+                        ))}
+                    </SortableContext>
+                </DndContext>
             </main>
         </div>
     )
