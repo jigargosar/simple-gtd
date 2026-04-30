@@ -5,6 +5,7 @@ import {
     PointerSensor,
     type UniqueIdentifier,
     closestCenter,
+    useDndContext,
     useSensor,
     useSensors,
 } from '@dnd-kit/core'
@@ -84,11 +85,42 @@ function DragHandle() {
     )
 }
 
+function HoverControls({
+    dragAttributes,
+    dragListeners,
+    suppressHover,
+    visibilityClass,
+}: {
+    dragAttributes: React.HTMLAttributes<HTMLElement>
+    dragListeners: React.HTMLAttributes<HTMLElement> | undefined
+    suppressHover: boolean
+    visibilityClass: string
+}) {
+    return (
+        <div
+            className={`absolute -left-16 top-0 h-full w-16 flex flex-row items-center justify-end gap-1 pr-2 opacity-0 transition-opacity ${suppressHover ? '' : visibilityClass}`}
+        >
+            <button
+                {...dragAttributes}
+                {...dragListeners}
+                className="p-2 cursor-grab text-gray-300 hover:text-gray-500 touch-none rounded"
+            >
+                <DragHandle />
+            </button>
+            <button className="p-2 text-gray-300 hover:text-gray-500 text-sm leading-none rounded">
+                +
+            </button>
+        </div>
+    )
+}
+
 function SortableTask({ task }: { task: Task }) {
+    const { active } = useDndContext()
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: task.id,
         data: { type: 'task' },
     })
+    const suppressHover = active !== null && active.id !== task.id
 
     return (
         <div
@@ -96,18 +128,12 @@ function SortableTask({ task }: { task: Task }) {
             style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
             className="group/task relative"
         >
-            <div className="absolute -left-8 top-0 h-full w-8 flex flex-col items-center justify-center gap-1 opacity-0 group-hover/task:opacity-100 transition-opacity">
-                <button
-                    {...attributes}
-                    {...listeners}
-                    className="cursor-grab text-gray-300 hover:text-gray-500 touch-none"
-                >
-                    <DragHandle />
-                </button>
-                <button className="text-gray-300 hover:text-gray-500 text-base leading-none">
-                    +
-                </button>
-            </div>
+            <HoverControls
+                dragAttributes={attributes}
+                dragListeners={listeners}
+                suppressHover={suppressHover}
+                visibilityClass="group-hover/task:opacity-100"
+            />
             <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3">
                 <span className={`flex-1 text-sm ${task.done ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
                     {task.title}
@@ -118,10 +144,12 @@ function SortableTask({ task }: { task: Task }) {
 }
 
 function SortableSection({ list }: { list: TaskList }) {
+    const { active } = useDndContext()
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: list.id,
         data: { type: 'section' },
     })
+    const suppressHover = active !== null && active.id !== list.id
 
     const taskIds: UniqueIdentifier[] = list.tasks.map(t => t.id)
 
@@ -129,27 +157,21 @@ function SortableSection({ list }: { list: TaskList }) {
         <section
             ref={setNodeRef}
             style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
-            className="group/section"
         >
-            <div className="relative ml-8">
-                <div className="absolute -left-8 top-0 h-full w-8 flex flex-col items-center justify-center gap-1 opacity-0 group-hover/section:opacity-100 transition-opacity">
-                    <button
-                        {...attributes}
-                        {...listeners}
-                        className="cursor-grab text-gray-300 hover:text-gray-500 touch-none"
-                    >
-                        <DragHandle />
-                    </button>
-                    <button className="text-gray-300 hover:text-gray-500 text-base leading-none">
-                        +
-                    </button>
-                </div>
+            {/* group/section-header scoped to this row only — does not encompass tasks */}
+            <div className="group/section-header relative ml-16">
+                <HoverControls
+                    dragAttributes={attributes}
+                    dragListeners={listeners}
+                    suppressHover={suppressHover}
+                    visibilityClass="group-hover/section-header:opacity-100"
+                />
                 <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-400">
                     {list.title}
                 </h2>
             </div>
             <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
-                <div className="ml-8 space-y-2">
+                <div className="ml-16 space-y-2">
                     {list.tasks.map(task => (
                         <SortableTask key={task.id} task={task} />
                     ))}
@@ -161,6 +183,7 @@ function SortableSection({ list }: { list: TaskList }) {
 
 export default function App() {
     const [lists, setLists] = useState<TaskList[]>(INITIAL_LISTS)
+    const [isDragging, setIsDragging] = useState(false)
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -200,12 +223,14 @@ export default function App() {
             <header className="border-b border-gray-200 bg-white px-6 py-4">
                 <h1 className="text-xl font-semibold tracking-tight">SimpleGTD</h1>
             </header>
-            <main className="mx-auto max-w-2xl px-6 py-10 space-y-10">
+            <main className={`mx-auto max-w-2xl px-6 py-10 space-y-10 ${isDragging ? 'select-none' : ''}`}>
                 <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}
                     modifiers={[restrictToVerticalAxis]}
-                    onDragEnd={handleDragEnd}
+                    onDragStart={() => setIsDragging(true)}
+                    onDragEnd={e => { setIsDragging(false); handleDragEnd(e) }}
+                    onDragCancel={() => setIsDragging(false)}
                 >
                     <SortableContext items={listIds} strategy={verticalListSortingStrategy}>
                         {lists.map(list => (
