@@ -154,6 +154,43 @@ function SortableSection({
   );
 }
 
+function AppHeader() {
+  return (
+    <header className="border-b border-gray-200 bg-white px-6 py-4">
+      <h1 className="text-xl font-semibold tracking-tight">SimpleGTD</h1>
+    </header>
+  );
+}
+
+function TaskBoard({
+  lists,
+  onReorderLists,
+  onReorderTasks,
+}: {
+  lists: TaskList[];
+  onReorderLists: (lists: TaskList[]) => void;
+  onReorderTasks: (listId: string, newTasks: Task[]) => void;
+}) {
+  return (
+    <main className="mx-auto max-w-2xl px-6 py-10">
+      <Reorder.Group
+        axis="y"
+        values={lists}
+        onReorder={onReorderLists}
+        className="space-y-10"
+      >
+        {lists.map((list) => (
+          <SortableSection
+            key={list.id}
+            list={list}
+            onReorderTasks={onReorderTasks}
+          />
+        ))}
+      </Reorder.Group>
+    </main>
+  );
+}
+
 export default function App() {
   const [lists, setLists] = useState<TaskList[]>(INITIAL_LISTS);
 
@@ -165,25 +202,12 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
-      <header className="border-b border-gray-200 bg-white px-6 py-4">
-        <h1 className="text-xl font-semibold tracking-tight">SimpleGTD</h1>
-      </header>
-      <main className="mx-auto max-w-2xl px-6 py-10">
-        <Reorder.Group
-          axis="y"
-          values={lists}
-          onReorder={setLists}
-          className="space-y-10"
-        >
-          {lists.map((list) => (
-            <SortableSection
-              key={list.id}
-              list={list}
-              onReorderTasks={handleReorderTasks}
-            />
-          ))}
-        </Reorder.Group>
-      </main>
+      <AppHeader />
+      <TaskBoard
+        lists={lists}
+        onReorderLists={setLists}
+        onReorderTasks={handleReorderTasks}
+      />
     </div>
   );
 }
