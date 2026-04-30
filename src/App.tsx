@@ -90,7 +90,7 @@ function SortableTask({ task }: { task: Task }) {
       value={task}
       dragListener={false}
       dragControls={controls}
-      className="group/task relative"
+      className="group/task relative flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3"
     >
       <div className="absolute -left-16 top-0 h-full w-16 flex flex-row items-center justify-end gap-1 pr-2 opacity-0 transition-opacity group-hover/task:opacity-100">
         <DragHandle onPointerDown={(e) => controls.start(e)} />
@@ -98,13 +98,11 @@ function SortableTask({ task }: { task: Task }) {
           +
         </button>
       </div>
-      <div className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3">
-        <span
-          className={`flex-1 text-sm ${task.done ? "text-gray-400 line-through" : "text-gray-900"}`}
-        >
-          {task.title}
-        </span>
-      </div>
+      <span
+        className={`flex-1 text-sm ${task.done ? "text-gray-400 line-through" : "text-gray-900"}`}
+      >
+        {task.title}
+      </span>
     </Reorder.Item>
   );
 }
