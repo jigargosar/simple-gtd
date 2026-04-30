@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { GripVertical, Plus } from "lucide-react";
 import { Reorder, useDragControls } from "motion/react";
 
 type Task = {
@@ -70,14 +71,7 @@ function DragHandle({
       onPointerDown={onPointerDown}
       className="p-2 cursor-grab text-gray-300 hover:text-gray-500 touch-none rounded"
     >
-      <svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
-        <circle cx="2" cy="2" r="1.5" />
-        <circle cx="8" cy="2" r="1.5" />
-        <circle cx="2" cy="7" r="1.5" />
-        <circle cx="8" cy="7" r="1.5" />
-        <circle cx="2" cy="12" r="1.5" />
-        <circle cx="8" cy="12" r="1.5" />
-      </svg>
+      <GripVertical size={14} />
     </button>
   );
 }
@@ -95,10 +89,7 @@ function SortableTask({ task }: { task: Task }) {
       <div className="absolute -left-16 top-0 h-full w-16 flex flex-row items-center justify-end gap-1 pr-2 opacity-0 transition-opacity group-hover/task:opacity-100">
         <DragHandle onPointerDown={(e) => controls.start(e)} />
         <button className="p-2 text-gray-300 hover:text-gray-500 rounded">
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
-            <rect x="4" y="0" width="2" height="10" rx="1" />
-            <rect x="0" y="4" width="10" height="2" rx="1" />
-          </svg>
+          <Plus size={10} />
         </button>
       </div>
       <span
