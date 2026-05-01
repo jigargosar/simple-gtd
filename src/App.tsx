@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { GripVertical, Plus, PlusIcon } from "lucide-react";
+import { GripVerticalIcon, PlusIcon } from "lucide-react";
 import { Reorder, useDragControls } from "motion/react";
 
 type Task = {
@@ -71,7 +71,7 @@ function DragHandleButton({
       onPointerDown={onPointerDown}
       className="p-2 text-gray-300 hover:text-gray-500 touch-none rounded"
     >
-      <GripVertical size={18} />
+      <GripVerticalIcon size={18} />
     </button>
   );
 }
@@ -83,7 +83,6 @@ function AddButton() {
     </button>
   );
 }
-
 
 function SortableTask({ task }: { task: Task }) {
   const controls = useDragControls();
@@ -97,7 +96,7 @@ function SortableTask({ task }: { task: Task }) {
     >
       <div className="absolute -left-16 top-0 h-full w-16 flex flex-row items-center justify-end gap-1 pr-2 opacity-0 transition-opacity group-hover/task:opacity-100">
         <DragHandleButton onPointerDown={(e) => controls.start(e)} />
-        <AddButton/>
+        <AddButton />
       </div>
       <span
         className={`flex-1 text-sm ${task.done ? "text-gray-400 line-through" : "text-gray-900"}`}
@@ -107,7 +106,6 @@ function SortableTask({ task }: { task: Task }) {
     </Reorder.Item>
   );
 }
-
 
 function SortableSection({
   taskList,
@@ -125,7 +123,7 @@ function SortableSection({
       dragControls={controls}
       as="section"
     >
-      <div className="group/section-header relative ml-16">
+      <div className="group/section-header relative">
         <div
           className="absolute top-0 left-full -translate-x-2 h-full w-16
                   flex flex-row items-center justify-end gap-1 pr-2
@@ -135,7 +133,7 @@ function SortableSection({
           <DragHandleButton onPointerDown={(e) => controls.start(e)} />
           <AddButton />
         </div>
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-400">
+        <h2 className="px-2 py-3 text-xs font-semibold uppercase tracking-widest text-gray-400">
           {taskList.title}
         </h2>
       </div>
@@ -143,7 +141,7 @@ function SortableSection({
         axis="y"
         values={taskList.tasks}
         onReorder={(tasks) => onReorderTasks(taskList.id, tasks)}
-        className="ml-16 space-y-2"
+        className="flex flex-col gap-3"
       >
         {taskList.tasks.map((task) => (
           <SortableTask key={task.id} task={task} />
@@ -178,7 +176,7 @@ function TaskBoard() {
         axis="y"
         values={taskLists}
         onReorder={setTaskLists}
-        className="space-y-10"
+        className="flex flex-col gap-10"
       >
         {taskLists.map((taskList) => (
           <SortableSection
