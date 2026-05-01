@@ -126,9 +126,14 @@ function SortableSection({
       as="section"
     >
       <div className="group/section-header relative ml-16">
-        <div className="absolute -left-16 top-0 h-full w-16 flex flex-row items-center justify-end gap-1 pr-2 opacity-0 transition-opacity group-hover/section-header:opacity-100">
+        <div
+          className="absolute top-0 left-full -translate-x-2 h-full w-16
+                  flex flex-row items-center justify-end gap-1 pr-2
+                  opacity-0 transition-opacity group-hover/section-header:opacity-100
+                  "
+        >
           <DragHandleButton onPointerDown={(e) => controls.start(e)} />
-          <AddButton/>
+          <AddButton />
         </div>
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-400">
           {taskList.title}
