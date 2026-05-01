@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type PointerEvent as PE } from 'react'
 import { GripVerticalIcon, PlusIcon } from 'lucide-react'
 import { Reorder, useDragControls } from 'motion/react'
 
@@ -61,11 +61,7 @@ const INITIAL_TASK_LISTS: TaskList[] = [
     },
 ]
 
-function DragHandleButton({
-    onPointerDown,
-}: {
-    onPointerDown: (e: React.PointerEvent) => void
-}) {
+function DragHandleButton({ onPointerDown }: { onPointerDown: (e: PE) => void }) {
     return (
         <button
             onPointerDown={onPointerDown}
