@@ -1,28 +1,30 @@
-@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Instrument+Sans:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
-    --font-display: 'Libre Baskerville', Georgia, serif;
     --font-sans: 'Instrument Sans', sans-serif;
-    --color-page: #f9f7f4;
-    --color-title: #1a1a1a;
-    --color-section: #6b6560;
-    --color-task: #1f1e1c;
-    --color-border: #e4e0da;
-    --color-bar-bg: #f9f7f4;
+
+    --color-page:          #ffffff;
+    --color-sidebar:       #f5f5f5;
+    --color-sidebar-hover: #ebebeb;
+    --color-sidebar-active:#e0e0e0;
+    --color-border:        #e8e8e8;
+    --color-title:         #111111;
+    --color-task:          #1a1a1a;
+    --color-task-muted:    #8a8a8a;
+    --color-label:         #6e6e6e;
+    --color-label-muted:   #b0b0b0;
+    --color-count:         #a0a0a0;
+    --color-blue:          #1d6fe5;
+    --color-circle:        #d4d4d4;
 }
 
-*, *::before, *::after {
-    box-sizing: border-box;
-}
+*, *::before, *::after { box-sizing: border-box; }
 
 html, body, #root {
     height: 100%;
     margin: 0;
     background: var(--color-page);
-}
-
-body {
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
 }
