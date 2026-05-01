@@ -1,11 +1,28 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Serif+Display&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Instrument+Sans:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
-    --font-sans: 'DM Sans', sans-serif;
-    --font-display: 'DM Serif Display', Georgia, serif;
+    --font-display: 'Libre Baskerville', Georgia, serif;
+    --font-sans: 'Instrument Sans', sans-serif;
+    --color-page: #f9f7f4;
+    --color-title: #1a1a1a;
+    --color-section: #6b6560;
+    --color-task: #1f1e1c;
+    --color-border: #e4e0da;
+    --color-bar-bg: #f9f7f4;
 }
 
-* {
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+html, body, #root {
+    height: 100%;
+    margin: 0;
+    background: var(--color-page);
+}
+
+body {
     font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
 }

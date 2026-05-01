@@ -1,17 +1,7 @@
 import { generateNKeysBetween, generateKeyBetween } from 'fractional-indexing'
 
-type List = {
-    id: string
-    name: string
-    order: string
-}
-
-type Task = {
-    id: string
-    text: string
-    parentId: string
-    order: string
-}
+type List = { id: string; name: string; order: string }
+type Task = { id: string; text: string; parentId: string; order: string }
 
 function uid() {
     return Math.random().toString(36).slice(2, 10)
@@ -37,10 +27,12 @@ function seedData(): { lists: List[]; tasks: Task[] } {
         [4, 'Read Thinking, Fast and Slow'],
     ]
 
-    const tasks: Task[] = seedTasks.map(([listIdx, text]) => {
-        const parentId = lists[listIdx].id
-        return { id: uid(), text, parentId, order: generateKeyBetween(null, null) }
-    })
+    const tasks: Task[] = seedTasks.map(([listIdx, text]) => ({
+        id: uid(),
+        text,
+        parentId: lists[listIdx].id,
+        order: generateKeyBetween(null, null),
+    }))
 
     return { lists, tasks }
 }
@@ -50,15 +42,37 @@ const SEED = seedData()
 export default function App() {
     const lists = SEED.lists
     const tasks = SEED.tasks
-
     const sortedLists = [...lists].sort((a, b) => (a.order < b.order ? -1 : 1))
 
     return (
-        <div>
-            <header className="border-b border-gray-100 px-8 py-3">
-                <span className="text-sm font-medium text-gray-400 tracking-widest uppercase">SimpleGTD</span>
+        <div style={{ minHeight: '100vh', background: 'var(--color-page)' }}>
+            <header
+                style={{
+                    borderBottom: '1px solid var(--color-border)',
+                    padding: '14px 32px',
+                    background: 'var(--color-bar-bg)',
+                }}
+            >
+                <span
+                    style={{
+                        fontFamily: 'var(--font-display)',
+                        fontSize: '15px',
+                        fontWeight: 700,
+                        color: 'var(--color-title)',
+                        letterSpacing: '-0.01em',
+                    }}
+                >
+                    SimpleGTD
+                </span>
             </header>
-            <div className="mx-auto max-w-md px-8 py-10">
+
+            <main
+                style={{
+                    maxWidth: 480,
+                    margin: '0 auto',
+                    padding: '48px 32px 80px',
+                }}
+            >
                 {sortedLists.map((list) => (
                     <ListSection
                         key={list.id}
@@ -68,18 +82,41 @@ export default function App() {
                             .sort((a, b) => (a.order < b.order ? -1 : 1))}
                     />
                 ))}
-            </div>
+            </main>
         </div>
     )
 }
 
 function ListSection({ list, tasks }: { list: List; tasks: Task[] }) {
     return (
-        <div className="mb-8">
-            <p className="mb-1.5 text-xs font-medium tracking-widest text-gray-400 uppercase">{list.name}</p>
-            <ul className="space-y-1.5">
+        <div style={{ marginBottom: 36 }}>
+            <p
+                style={{
+                    margin: '0 0 8px',
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    color: 'var(--color-section)',
+                }}
+            >
+                {list.name}
+            </p>
+            <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
                 {tasks.map((task) => (
-                    <li key={task.id} className="text-sm text-gray-800">
+                    <li
+                        key={task.id}
+                        style={{
+                            padding: '5px 0',
+                            fontFamily: 'var(--font-sans)',
+                            fontSize: '15px',
+                            fontWeight: 400,
+                            color: 'var(--color-task)',
+                            lineHeight: 1.5,
+                            borderBottom: '1px solid var(--color-border)',
+                        }}
+                    >
                         {task.text}
                     </li>
                 ))}
