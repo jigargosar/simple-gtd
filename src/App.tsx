@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { generateNKeysBetween, generateKeyBetween } from 'fractional-indexing'
 
 type List = {
@@ -17,7 +16,6 @@ type Task = {
 function uid() {
     return Math.random().toString(36).slice(2, 10)
 }
-
 
 function seedData(): { lists: List[]; tasks: Task[] } {
     const listNames = ['Inbox', 'Next Actions', 'Projects', 'Waiting For', 'Someday / Maybe']
@@ -56,180 +54,36 @@ export default function App() {
     const sortedLists = [...lists].sort((a, b) => (a.order < b.order ? -1 : 1))
 
     return (
-        <div
-            style={{
-                minHeight: '100vh',
-                background: 'var(--color-ink)',
-                paddingTop: '3rem',
-                paddingBottom: '6rem',
-            }}
-        >
-            {/* Page header */}
-            <header
-                style={{
-                    maxWidth: 560,
-                    margin: '0 auto 3.5rem',
-                    padding: '0 1.5rem',
-                    borderBottom: '1px solid var(--color-border)',
-                    paddingBottom: '1.5rem',
-                }}
-            >
-                <div
-                    style={{
-                        fontSize: '0.65rem',
-                        letterSpacing: '0.18em',
-                        textTransform: 'uppercase',
-                        color: 'var(--color-amber)',
-                        marginBottom: '0.5rem',
-                        fontFamily: 'var(--font-body)',
-                        fontWeight: 400,
-                    }}
-                >
-                    Getting Things Done
-                </div>
-                <h1
-                    style={{
-                        fontFamily: 'var(--font-display)',
-                        fontSize: '2rem',
-                        fontWeight: 700,
-                        color: 'var(--color-text-primary)',
-                        margin: 0,
-                        lineHeight: 1.15,
-                        letterSpacing: '-0.01em',
-                    }}
-                >
-                    My Lists
-                </h1>
+        <div>
+            <header className="border-b border-gray-200 px-6 py-4">
+                <h1 className="text-base font-semibold text-gray-900">SimpleGTD</h1>
             </header>
-
-            {/* Lists */}
-            <main style={{ maxWidth: 560, margin: '0 auto', padding: '0 1.5rem' }}>
-                {sortedLists.map((list, i) => (
-                    <ListSection
-                        key={list.id}
-                        list={list}
-                        index={i}
-                        tasks={tasks
-                            .filter((t) => t.parentId === list.id)
-                            .sort((a, b) => (a.order < b.order ? -1 : 1))}
-                    />
-                ))}
-            </main>
+            <div className="mx-auto max-w-lg px-6 py-12">
+            {sortedLists.map((list) => (
+                <ListSection
+                    key={list.id}
+                    list={list}
+                    tasks={tasks
+                        .filter((t) => t.parentId === list.id)
+                        .sort((a, b) => (a.order < b.order ? -1 : 1))}
+                />
+            ))}
+            </div>
         </div>
     )
 }
 
-function ListSection({
-    list,
-    tasks,
-    index,
-}: {
-    list: List
-    tasks: Task[]
-    index: number
-}) {
+function ListSection({ list, tasks }: { list: List; tasks: Task[] }) {
     return (
-        <section
-            className="animate-fade-up"
-            style={{
-                marginBottom: '2.75rem',
-                animationDelay: `${index * 60}ms`,
-            }}
-        >
-            {/* Chapter header */}
-            <div
-                style={{
-                    display: 'flex',
-                    alignItems: 'baseline',
-                    gap: '0.75rem',
-                    marginBottom: '0.85rem',
-                }}
-            >
-                <span
-                    style={{
-                        display: 'block',
-                        width: 24,
-                        height: 1,
-                        background: 'var(--color-amber)',
-                        flexShrink: 0,
-                        position: 'relative',
-                        top: '-3px',
-                    }}
-                />
-                <h2
-                    style={{
-                        fontFamily: 'var(--font-display)',
-                        fontSize: '1.05rem',
-                        fontWeight: 600,
-                        color: 'var(--color-text-primary)',
-                        margin: 0,
-                        letterSpacing: '0.01em',
-                    }}
-                >
-                    {list.name}
-                </h2>
-                <span
-                    style={{
-                        fontSize: '0.7rem',
-                        color: 'var(--color-text-muted)',
-                        fontStyle: 'italic',
-                        marginLeft: 'auto',
-                        flexShrink: 0,
-                    }}
-                >
-                    {tasks.length} {tasks.length === 1 ? 'item' : 'items'}
-                </span>
-            </div>
-
-            {/* Task list with left rule */}
-            <div
-                style={{
-                    borderLeft: '1px solid var(--color-border)',
-                    paddingLeft: '1.25rem',
-                    marginLeft: '0.5rem',
-                }}
-            >
-                <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
-                    {tasks.map((task) => (
-                        <TaskRow key={task.id} task={task} />
-                    ))}
-                </ul>
-            </div>
-        </section>
+        <div className="mb-10">
+            <h2 className="mb-3 text-base font-semibold tracking-wide text-gray-900">{list.name}</h2>
+            <ul className="space-y-2 pl-4">
+                {tasks.map((task) => (
+                    <li key={task.id} className="text-sm text-gray-600">
+                        {task.text}
+                    </li>
+                ))}
+            </ul>
+        </div>
     )
 }
-
-function TaskRow({ task }: { task: Task }) {
-    const [hovered, setHovered] = useState(false)
-
-    return (
-        <li
-            onMouseEnter={() => setHovered(true)}
-            onMouseLeave={() => setHovered(false)}
-            style={{
-                padding: '0.3rem 0',
-                color: hovered ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
-                fontSize: '0.9rem',
-                lineHeight: 1.55,
-                transition: 'color 0.15s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-            }}
-        >
-            <span
-                style={{
-                    display: 'inline-block',
-                    width: 4,
-                    height: 4,
-                    borderRadius: '50%',
-                    background: hovered ? 'var(--color-amber)' : 'var(--color-border-strong)',
-                    flexShrink: 0,
-                    transition: 'background 0.15s ease',
-                }}
-            />
-            {task.text}
-        </li>
-    )
-}
-
