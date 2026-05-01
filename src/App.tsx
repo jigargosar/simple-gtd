@@ -45,34 +45,23 @@ export default function App() {
     const sortedLists = [...lists].sort((a, b) => (a.order < b.order ? -1 : 1))
 
     return (
-        <div style={{ minHeight: '100vh', background: 'var(--color-page)' }}>
-            <header
-                style={{
-                    borderBottom: '1px solid var(--color-border)',
-                    padding: '14px 32px',
-                    background: 'var(--color-bar-bg)',
-                }}
-            >
-                <span
-                    style={{
-                        fontFamily: 'var(--font-display)',
-                        fontSize: '15px',
-                        fontWeight: 700,
-                        color: 'var(--color-title)',
-                        letterSpacing: '-0.01em',
-                    }}
-                >
-                    SimpleGTD
-                </span>
+        <div className="min-h-screen bg-page">
+            <header className="border-b border-border">
+                <div className="mx-auto flex max-w-2xl items-baseline justify-between px-6 py-5">
+                    <span className="font-display text-xl font-bold tracking-tight text-title">
+                        Simple<span className="italic text-[dodgerblue]">GTD</span>
+                    </span>
+                    <span className="font-sans text-xs font-medium uppercase tracking-[0.18em] text-section">
+                        {new Date().toLocaleDateString(undefined, {
+                            weekday: 'long',
+                            month: 'long',
+                            day: 'numeric',
+                        })}
+                    </span>
+                </div>
             </header>
 
-            <main
-                style={{
-                    maxWidth: 480,
-                    margin: '0 auto',
-                    padding: '48px 32px 80px',
-                }}
-            >
+            <main className="mx-auto max-w-2xl px-6 pt-12 pb-24">
                 {sortedLists.map((list) => (
                     <ListSection
                         key={list.id}
@@ -89,38 +78,32 @@ export default function App() {
 
 function ListSection({ list, tasks }: { list: List; tasks: Task[] }) {
     return (
-        <div style={{ marginBottom: 36 }}>
-            <p
-                style={{
-                    margin: '0 0 8px',
-                    fontFamily: 'var(--font-sans)',
-                    fontSize: '10px',
-                    fontWeight: 600,
-                    letterSpacing: '0.12em',
-                    textTransform: 'uppercase',
-                    color: 'var(--color-section)',
-                }}
-            >
-                {list.name}
-            </p>
-            <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+        <section className="mb-14">
+            <div className="mb-4 flex items-baseline gap-3">
+                <h2 className="font-display text-[26px] font-bold leading-none tracking-tight text-title">
+                    {list.name}
+                </h2>
+                <span className="font-sans text-sm font-semibold tabular-nums text-[dodgerblue]">
+                    {tasks.length}
+                </span>
+            </div>
+
+            <ul className="m-0 list-none p-0">
                 {tasks.map((task) => (
                     <li
                         key={task.id}
-                        style={{
-                            padding: '5px 0',
-                            fontFamily: 'var(--font-sans)',
-                            fontSize: '15px',
-                            fontWeight: 400,
-                            color: 'var(--color-task)',
-                            lineHeight: 1.5,
-                            borderBottom: '1px solid var(--color-border)',
-                        }}
+                        className="group flex items-center gap-4 border-b border-border py-3"
                     >
-                        {task.text}
+                        <span
+                            aria-hidden
+                            className="h-[18px] w-[18px] flex-none rounded-full border-2 border-[#c8c2b6] transition-colors group-hover:border-[dodgerblue]"
+                        />
+                        <span className="font-sans text-[17px] leading-snug text-task">
+                            {task.text}
+                        </span>
                     </li>
                 ))}
             </ul>
-        </div>
+        </section>
     )
 }
