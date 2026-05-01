@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { GripVertical, Plus } from "lucide-react";
+import { GripVertical, Plus, PlusIcon } from "lucide-react";
 import { Reorder, useDragControls } from "motion/react";
 
 type Task = {
@@ -61,7 +61,7 @@ const INITIAL_TASK_LISTS: TaskList[] = [
   },
 ];
 
-function DragHandle({
+function DragHandleButton({
   onPointerDown,
 }: {
   onPointerDown: (e: React.PointerEvent) => void;
@@ -69,12 +69,21 @@ function DragHandle({
   return (
     <button
       onPointerDown={onPointerDown}
-      className="p-2 cursor-grab text-gray-300 hover:text-gray-500 touch-none rounded"
+      className="p-2 text-gray-300 hover:text-gray-500 touch-none rounded"
     >
-      <GripVertical size={14} />
+      <GripVertical size={18} />
     </button>
   );
 }
+
+function AddButton() {
+  return (
+    <button className="p-2 text-gray-300 hover:text-gray-500 rounded">
+      <PlusIcon size={18} />
+    </button>
+  );
+}
+
 
 function SortableTask({ task }: { task: Task }) {
   const controls = useDragControls();
@@ -87,10 +96,8 @@ function SortableTask({ task }: { task: Task }) {
       className="group/task relative flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3"
     >
       <div className="absolute -left-16 top-0 h-full w-16 flex flex-row items-center justify-end gap-1 pr-2 opacity-0 transition-opacity group-hover/task:opacity-100">
-        <DragHandle onPointerDown={(e) => controls.start(e)} />
-        <button className="p-2 text-gray-300 hover:text-gray-500 rounded">
-          <Plus size={10} />
-        </button>
+        <DragHandleButton onPointerDown={(e) => controls.start(e)} />
+        <AddButton/>
       </div>
       <span
         className={`flex-1 text-sm ${task.done ? "text-gray-400 line-through" : "text-gray-900"}`}
@@ -100,6 +107,7 @@ function SortableTask({ task }: { task: Task }) {
     </Reorder.Item>
   );
 }
+
 
 function SortableSection({
   taskList,
@@ -119,13 +127,8 @@ function SortableSection({
     >
       <div className="group/section-header relative ml-16">
         <div className="absolute -left-16 top-0 h-full w-16 flex flex-row items-center justify-end gap-1 pr-2 opacity-0 transition-opacity group-hover/section-header:opacity-100">
-          <DragHandle onPointerDown={(e) => controls.start(e)} />
-          <button className="p-2 text-gray-300 hover:text-gray-500 rounded">
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
-              <rect x="4" y="0" width="2" height="10" rx="1" />
-              <rect x="0" y="4" width="10" height="2" rx="1" />
-            </svg>
-          </button>
+          <DragHandleButton onPointerDown={(e) => controls.start(e)} />
+          <AddButton/>
         </div>
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-400">
           {taskList.title}
