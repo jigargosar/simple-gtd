@@ -185,7 +185,7 @@ function SortableTask({
         <div
             ref={ref}
             data-dragging={isDragging}
-            className="group/task relative flex items-center gap-3 rounded border border-border bg-page px-4 py-3 transition-colors hover:border-circle data-[dragging=true]:opacity-30"
+            className="group/task relative flex items-center gap-3 rounded bg-page px-4 py-2 data-[dragging=true]:opacity-30"
         >
             <div className="absolute top-0 left-0 flex h-full -translate-x-full items-center gap-0.5 pr-1 opacity-0 transition-opacity group-hover/task:opacity-100">
                 <DragHandleButton ref={handleRef} />
@@ -263,12 +263,10 @@ function SortableSection({
                     <DragHandleButton ref={handleRef} />
                     <AddButton onClick={onAddTask} />
                 </div>
-                <div className="flex items-center gap-3 px-2 py-3">
-                    <span className="h-px flex-1 bg-border" />
+                <div className="flex items-center px-4 py-3">
                     <h2 className="text-xs font-semibold tracking-[0.2em] text-blue uppercase">
                         {section.title}
                     </h2>
-                    <span className="h-px flex-1 bg-border" />
                 </div>
             </div>
             <div className="flex min-h-2 flex-col gap-2">
@@ -293,7 +291,7 @@ function SortableSection({
 
 function AppHeader() {
     return (
-        <header className="border-b border-border px-8 py-5">
+        <header className="px-8 py-5">
             <div className="mx-auto flex max-w-2xl items-baseline gap-3">
                 <h1 className="text-2xl font-semibold text-title">
                     SimpleGTD
