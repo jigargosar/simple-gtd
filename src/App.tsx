@@ -55,19 +55,19 @@ export default function App() {
 
     return (
         <div>
-            <header className="border-b border-gray-200 px-6 py-4">
-                <h1 className="text-base font-semibold text-gray-900">SimpleGTD</h1>
+            <header className="border-b border-gray-100 px-8 py-3">
+                <span className="text-sm font-medium text-gray-400 tracking-widest uppercase">SimpleGTD</span>
             </header>
-            <div className="mx-auto max-w-lg px-6 py-12">
-            {sortedLists.map((list) => (
-                <ListSection
-                    key={list.id}
-                    list={list}
-                    tasks={tasks
-                        .filter((t) => t.parentId === list.id)
-                        .sort((a, b) => (a.order < b.order ? -1 : 1))}
-                />
-            ))}
+            <div className="mx-auto max-w-md px-8 py-10">
+                {sortedLists.map((list) => (
+                    <ListSection
+                        key={list.id}
+                        list={list}
+                        tasks={tasks
+                            .filter((t) => t.parentId === list.id)
+                            .sort((a, b) => (a.order < b.order ? -1 : 1))}
+                    />
+                ))}
             </div>
         </div>
     )
@@ -75,11 +75,11 @@ export default function App() {
 
 function ListSection({ list, tasks }: { list: List; tasks: Task[] }) {
     return (
-        <div className="mb-10">
-            <h2 className="mb-3 text-base font-semibold tracking-wide text-gray-900">{list.name}</h2>
-            <ul className="space-y-2 pl-4">
+        <div className="mb-8">
+            <p className="mb-1.5 text-xs font-medium tracking-widest text-gray-400 uppercase">{list.name}</p>
+            <ul className="space-y-1.5">
                 {tasks.map((task) => (
-                    <li key={task.id} className="text-sm text-gray-600">
+                    <li key={task.id} className="text-sm text-gray-800">
                         {task.text}
                     </li>
                 ))}
