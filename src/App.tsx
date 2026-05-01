@@ -92,9 +92,9 @@ function SortableTask({ task }: { task: Task }) {
             value={task}
             dragListener={false}
             dragControls={controls}
-            className="group/task relative flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3"
+            className="group/task relative flex items-center rounded-lg border border-gray-200 bg-white px-4 py-3"
         >
-            <div className="absolute top-0 -left-16 flex h-full w-16 flex-row items-center justify-end gap-1 pr-2 opacity-0 transition-opacity group-hover/task:opacity-100">
+            <div className="absolute top-0 left-0 flex h-full -translate-x-full items-center gap-1 pr-2 opacity-0 transition-opacity group-hover/task:opacity-100">
                 <DragHandleButton onPointerDown={(e) => controls.start(e)} />
                 <AddButton />
             </div>
@@ -124,10 +124,8 @@ function SortableSection({
             as="section"
         >
             <div className="group/section-header relative">
-                <div className="absolute top-0 left-full flex h-full w-16 -translate-x-2 flex-row items-center justify-end gap-1 pr-2 opacity-0 transition-opacity group-hover/section-header:opacity-100">
-                    <DragHandleButton
-                        onPointerDown={(e) => controls.start(e)}
-                    />
+                <div className="absolute top-0 left-0 flex h-full -translate-x-full items-center gap-1 pr-2 opacity-0 transition-opacity group-hover/section-header:opacity-100">
+                    <DragHandleButton onPointerDown={(e) => controls.start(e)} />
                     <AddButton />
                 </div>
                 <h2 className="px-2 py-3 text-xs font-semibold tracking-widest text-gray-400 uppercase">
