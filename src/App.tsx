@@ -185,7 +185,7 @@ function SortableTask({
         <div
             ref={ref}
             data-dragging={isDragging}
-            className="group/task relative flex items-center gap-3 rounded bg-page px-4 py-2 data-[dragging=true]:opacity-30"
+            className="group/task relative flex items-center gap-3 rounded bg-page px-4 py-3 data-[dragging=true]:opacity-30"
         >
             <div className="absolute top-0 left-0 flex h-full -translate-x-full items-center gap-0.5 pr-1 opacity-0 transition-opacity group-hover/task:opacity-100">
                 <DragHandleButton ref={handleRef} />
@@ -269,7 +269,7 @@ function SortableSection({
                     </h2>
                 </div>
             </div>
-            <div className="flex min-h-2 flex-col gap-2">
+            <div className="flex min-h-2 flex-col">
                 {tasks.map((task, taskIndex) => (
                     <SortableTask
                         key={task.id}
