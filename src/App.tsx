@@ -5,9 +5,10 @@ import { DragDropProvider } from '@dnd-kit/react'
 import { useSortable } from '@dnd-kit/react/sortable'
 import { CollisionPriority } from '@dnd-kit/abstract'
 import { move } from '@dnd-kit/helpers'
+import { v4 as uuidv4 } from 'uuid'
 
 type Task = {
-    id: number
+    id: string
     title: string
     done: boolean
 }
@@ -42,28 +43,28 @@ const SECTION_META: Record<string, SectionMeta> = {
 
 const INITIAL_TASKS_BY_SECTION: Record<string, Task[]> = {
     inbox: [
-        { id: 1, title: 'Read article on deep work', done: false },
-        { id: 2, title: "Reply to Sarah's email", done: false },
-        { id: 3, title: 'Look into new invoicing tool', done: false },
+        { id: uuidv4(), title: 'Read article on deep work', done: false },
+        { id: uuidv4(), title: "Reply to Sarah's email", done: false },
+        { id: uuidv4(), title: 'Look into new invoicing tool', done: false },
     ],
     next: [
-        { id: 4, title: 'Write project proposal', done: false },
-        { id: 5, title: 'Book dentist appointment', done: true },
-        { id: 6, title: 'Review pull request #42', done: false },
+        { id: uuidv4(), title: 'Write project proposal', done: false },
+        { id: uuidv4(), title: 'Book dentist appointment', done: true },
+        { id: uuidv4(), title: 'Review pull request #42', done: false },
     ],
     projects: [
-        { id: 7, title: 'Launch SimpleGTD v1', done: false },
-        { id: 8, title: 'Migrate database to Postgres', done: false },
-        { id: 9, title: 'Redesign onboarding flow', done: true },
+        { id: uuidv4(), title: 'Launch SimpleGTD v1', done: false },
+        { id: uuidv4(), title: 'Migrate database to Postgres', done: false },
+        { id: uuidv4(), title: 'Redesign onboarding flow', done: true },
     ],
     waiting: [
-        { id: 10, title: 'Contract signature from client', done: false },
-        { id: 11, title: 'Design assets from Priya', done: false },
+        { id: uuidv4(), title: 'Contract signature from client', done: false },
+        { id: uuidv4(), title: 'Design assets from Priya', done: false },
     ],
     someday: [
-        { id: 12, title: 'Learn Rust', done: false },
-        { id: 13, title: 'Build a keyboard', done: false },
-        { id: 14, title: 'Read Thinking Fast and Slow', done: false },
+        { id: uuidv4(), title: 'Learn Rust', done: false },
+        { id: uuidv4(), title: 'Build a keyboard', done: false },
+        { id: uuidv4(), title: 'Read Thinking Fast and Slow', done: false },
     ],
 }
 
@@ -72,7 +73,7 @@ function isTask(v: unknown): v is Task {
         v !== null &&
         typeof v === 'object' &&
         'id' in v &&
-        typeof v.id === 'number' &&
+        typeof v.id === 'string' &&
         'title' in v &&
         typeof v.title === 'string' &&
         'done' in v &&
@@ -112,15 +113,6 @@ function loadInitialBoard(): BoardState {
     }
 }
 
-function maxTaskId(tasksBySection: Record<string, Task[]>): number {
-    let max = 0
-    for (const list of Object.values(tasksBySection)) {
-        for (const t of list) {
-            if (t.id > max) max = t.id
-        }
-    }
-    return max
-}
 
 function DragHandleButton(props: ComponentProps<'button'>) {
     return (
@@ -167,6 +159,7 @@ function SortableTask({
 }) {
     const { ref, handleRef, isDragging } = useSortable({
         id: task.id,
+
         index,
         type: 'task',
         accept: 'task',
@@ -240,11 +233,11 @@ function SortableSection({
     section: SectionMeta
     index: number
     tasks: Task[]
-    editingId: number | null
-    onStartEdit: (taskId: number) => void
-    onCommitEdit: (taskId: number, title: string) => void
+    editingId: string | null
+    onStartEdit: (taskId: string) => void
+    onCommitEdit: (taskId: string, title: string) => void
     onCancelEdit: () => void
-    onToggleDone: (taskId: number) => void
+    onToggleDone: (taskId: string) => void
     onAddTask: () => void
     onAddTaskBelow: (taskIndex: number) => void
 }) {
@@ -306,8 +299,7 @@ function AppHeader() {
 
 function TaskBoard() {
     const [board, setBoard] = useState<BoardState>(loadInitialBoard)
-    const [editingId, setEditingId] = useState<number | null>(null)
-    const nextIdRef = useRef<number>(maxTaskId(board.tasksBySection) + 1)
+    const [editingId, setEditingId] = useState<string | null>(null)
     const previousBoard = useRef(board)
 
     useEffect(() => {
@@ -321,13 +313,7 @@ function TaskBoard() {
         return () => clearTimeout(timer)
     }, [board])
 
-    function newTaskId(): number {
-        const id = nextIdRef.current
-        nextIdRef.current += 1
-        return id
-    }
-
-    function findSectionId(taskId: number): string | undefined {
+    function findSectionId(taskId: string): string | undefined {
         for (const [sid, list] of Object.entries(board.tasksBySection)) {
             if (list.some((t) => t.id === taskId)) return sid
         }
@@ -335,7 +321,7 @@ function TaskBoard() {
     }
 
     function addTask(sectionId: string, afterIndex?: number) {
-        const newTask: Task = { id: newTaskId(), title: '', done: false }
+        const newTask: Task = { id: uuidv4(), title: '', done: false }
         setBoard((prev) => {
             const list = prev.tasksBySection[sectionId] ?? []
             const insertAt = afterIndex === undefined ? list.length : afterIndex + 1
@@ -349,7 +335,7 @@ function TaskBoard() {
         setEditingId(newTask.id)
     }
 
-    function commitEdit(taskId: number, title: string) {
+    function commitEdit(taskId: string, title: string) {
         const trimmed = title.trim()
         const sid = findSectionId(taskId)
         if (sid === undefined) {
@@ -390,7 +376,7 @@ function TaskBoard() {
         setEditingId(null)
     }
 
-    function toggleDone(taskId: number) {
+    function toggleDone(taskId: string) {
         const sid = findSectionId(taskId)
         if (sid === undefined) return
         setBoard((prev) => ({
