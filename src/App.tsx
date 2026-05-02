@@ -1,8 +1,8 @@
 import { Fragment } from 'react'
 import type { KeyboardEvent } from 'react'
 import { GripVerticalIcon, PlusIcon } from 'lucide-react'
-import type { Task, Section, Id } from './model'
-import { BoardProvider, useBoard } from './model'
+import type { Task, Section, SectionId } from './model'
+import { BoardProvider, useBoard, Task as TaskOps } from './model'
 
 function Controls({ onAdd }: { onAdd: () => void }) {
     return (
@@ -27,14 +27,12 @@ function Beacon() {
 function TaskView({
     task,
     sectionId,
-    taskIndex,
 }: {
     task: Task
-    sectionId: Id
-    taskIndex: number
+    sectionId: SectionId
 }) {
     const board = useBoard()
-    const isEditing = board.isEditing(task.id)
+    const isEditing = board.isEditing(task)
 
     function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
         if (e.key === 'Enter') e.currentTarget.blur()
@@ -44,35 +42,31 @@ function TaskView({
     return (
         <div className="group/task bg-page relative flex items-center gap-3 rounded px-4 py-2">
             <div className="opacity-0 transition-opacity group-hover/task:opacity-100">
-                <Controls onAdd={() => board.addTask(sectionId, taskIndex)} />
+                <Controls onAdd={() => board.addTask(sectionId, TaskOps.after(task.id))} />
             </div>
             <input
                 type="checkbox"
                 checked={task.done}
-                onChange={() => board.toggleDone(sectionId, task.id)}
+                onChange={() => board.toggleDone(sectionId, task)}
                 className="accent-blue h-4 w-4 cursor-pointer"
             />
             {isEditing ? (
                 <input
                     autoFocus
                     defaultValue={task.title}
-                    onBlur={(e) =>
-                        board.commitEdit(sectionId, task.id, e.currentTarget.value)
-                    }
+                    onBlur={(e) => board.commitEdit(sectionId, task, e.currentTarget.value)}
                     onKeyDown={handleKeyDown}
                     className="text-task flex-1 bg-transparent text-sm leading-relaxed tracking-wide outline-none"
                 />
             ) : (
                 <span
-                    onClick={() => board.startEdit(sectionId, task.id)}
+                    onClick={() => board.startEdit(sectionId, task)}
                     className={`flex-1 cursor-text text-sm leading-relaxed tracking-wide ${
                         task.done ? 'text-task-muted line-through' : 'text-task'
                     }`}
                 >
                     {task.title || (
-                        <span className="text-label-muted italic">
-                            empty — click to edit
-                        </span>
+                        <span className="text-label-muted italic">empty — click to edit</span>
                     )}
                 </span>
             )}
@@ -88,7 +82,7 @@ function SectionView({ section }: { section: Section }) {
         <section>
             <div className="group/section relative">
                 <div className="opacity-0 transition-opacity group-hover/section:opacity-100">
-                    <Controls onAdd={() => board.addTask(section.id)} />
+                    <Controls onAdd={() => board.addTask(section.id, TaskOps.noId)} />
                 </div>
                 <div className="flex items-center px-4 py-3">
                     <h2 className="text-blue text-xs font-semibold tracking-[0.2em] uppercase">
@@ -98,13 +92,9 @@ function SectionView({ section }: { section: Section }) {
             </div>
             <div className="flex min-h-2 flex-col">
                 <Beacon />
-                {tasks.map((task, taskIndex) => (
+                {tasks.map((task) => (
                     <Fragment key={task.id}>
-                        <TaskView
-                            task={task}
-                            sectionId={section.id}
-                            taskIndex={taskIndex}
-                        />
+                        <TaskView task={task} sectionId={section.id} />
                         <Beacon />
                     </Fragment>
                 ))}

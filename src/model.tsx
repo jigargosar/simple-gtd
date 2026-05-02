@@ -1,56 +1,20 @@
-import { Schema, Effect } from 'effect'
+import { Option } from 'effect'
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { v4 as uuidv4 } from 'uuid'
-import { generateKeyBetween, generateNKeysBetween } from 'fractional-indexing'
+import { Task, type TaskId, type MaybeTaskId } from './task'
+import { Section, type SectionId } from './section'
 
-export const Id = Schema.String.pipe(Schema.brand('Id'))
-export const Title = Schema.String.pipe(Schema.brand('Title'))
-export const Order = Schema.String.pipe(Schema.brand('Order'))
+export type { TaskId, MaybeTaskId, SectionId }
+export { Task, Section }
 
-export type Id = Schema.Schema.Type<typeof Id>
-export type Title = Schema.Schema.Type<typeof Title>
-export type Order = Schema.Schema.Type<typeof Order>
+type TasksBySection = Record<SectionId, Task[]>
 
-export const Task = Schema.Struct({
-    id: Id,
-    title: Title,
-    done: Schema.Boolean,
-    order: Order,
-})
-
-export const Section = Schema.Struct({
-    id: Id,
-    title: Title,
-    order: Order,
-})
-
-export const BoardState = Schema.Struct({
-    sections: Schema.Array(Section),
-    tasksBySection: Schema.Record({ key: Id, value: Schema.Array(Task) }),
-})
-
-export type Task = Schema.Schema.Type<typeof Task>
-export type Section = Schema.Schema.Type<typeof Section>
-export type BoardState = Schema.Schema.Type<typeof BoardState>
-
-export const STORAGE_KEY = 'simple-gtd:v3'
-
-export function makeId(): Id {
-    return Id.make(uuidv4())
+type BoardState = {
+    readonly sections: readonly Section[]
+    readonly tasksBySection: TasksBySection
 }
 
-export function makeTitle(t: string): Title {
-    return Title.make(t)
-}
-
-export function makeOrder(o: string): Order {
-    return Order.make(o)
-}
-
-export function orderBetween(prev: Order | null, next: Order | null): Order {
-    return Order.make(generateKeyBetween(prev, next))
-}
+const STORAGE_KEY = 'simple-gtd:v3'
 
 const SEED: ReadonlyArray<{
     title: string
@@ -97,162 +61,124 @@ const SEED: ReadonlyArray<{
     },
 ]
 
-function buildInitialBoard(): BoardState {
-    const sectionOrders = generateNKeysBetween(null, null, SEED.length)
-    const sections: Section[] = []
-    const tasksBySection: Record<Id, Task[]> = {} as Record<Id, Task[]>
-
-    for (let i = 0; i < SEED.length; i++) {
-        const s = SEED[i]
-        const sectionId = makeId()
-        sections.push({
-            id: sectionId,
-            title: makeTitle(s.title),
-            order: makeOrder(sectionOrders[i]),
-        })
-        const taskOrders = generateNKeysBetween(null, null, s.tasks.length)
-        tasksBySection[sectionId] = s.tasks.map((t, j) => ({
-            id: makeId(),
-            title: makeTitle(t.title),
-            done: t.done ?? false,
-            order: makeOrder(taskOrders[j]),
-        }))
-    }
-
-    return { sections, tasksBySection }
+function buildInitialBoard(): Option.Option<BoardState> {
+    return Option.flatMap(Section.makeMany(SEED), (sections) => {
+        const taskResults = SEED.map((s) => Task.makeMany(s.tasks))
+        if (taskResults.some(Option.isNone)) return Option.none()
+        const tasksBySection: TasksBySection = {}
+        for (let i = 0; i < sections.length; i++) {
+            tasksBySection[sections[i].id] = Option.getOrThrow(taskResults[i])
+        }
+        return Option.some({ sections, tasksBySection })
+    })
 }
 
-const INITIAL_BOARD: BoardState = buildInitialBoard()
-
-const BoardStateJson = Schema.parseJson(BoardState)
-
-const loadBoardProgram = Effect.try(() => localStorage.getItem(STORAGE_KEY)).pipe(
-    Effect.flatMap(Effect.fromNullable),
-    Effect.flatMap(Schema.decode(BoardStateJson)),
-    Effect.orElseSucceed(() => INITIAL_BOARD),
-)
+const INITIAL_BOARD: BoardState = Option.getOrThrow(buildInitialBoard())
 
 function loadInitialBoard(): BoardState {
-    return Effect.runSync(loadBoardProgram)
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY)
+        if (raw === null) return INITIAL_BOARD
+        return JSON.parse(raw) as BoardState
+    } catch {
+        return INITIAL_BOARD
+    }
 }
 
-type Editing = { sectionId: Id; taskId: Id }
+function saveBoard(board: BoardState): void {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(board))
+    } catch {
+        // ignore quota / privacy mode errors
+    }
+}
+
+type Editing = { sectionId: SectionId; taskId: TaskId }
 
 type BoardModel = {
     sections: readonly Section[]
-    tasksIn: (sectionId: Id) => readonly Task[]
-    isEditing: (taskId: Id) => boolean
+    tasksIn: (sectionId: SectionId) => readonly Task[]
+    isEditing: (task: Task) => boolean
 
-    addTask: (sectionId: Id, afterIndex?: number) => void
-    startEdit: (sectionId: Id, taskId: Id) => void
-    commitEdit: (sectionId: Id, taskId: Id, title: string) => void
+    addTask: (sectionId: SectionId, afterId: MaybeTaskId) => void
+    startEdit: (sectionId: SectionId, task: Task) => void
+    commitEdit: (sectionId: SectionId, task: Task, title: string) => void
     cancelEdit: () => void
-    toggleDone: (sectionId: Id, taskId: Id) => void
+    toggleDone: (sectionId: SectionId, task: Task) => void
 }
 
 const BoardContext = createContext<BoardModel | null>(null)
 
 export function BoardProvider({ children }: { children: ReactNode }) {
     const [board, setBoard] = useState<BoardState>(loadInitialBoard)
-    const [editing, setEditing] = useState<Editing | null>(null)
+    const [editing, setEditing] = useState<Option.Option<Editing>>(Option.none())
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(board))
-            } catch {
-                // ignore quota / privacy mode errors
-            }
-        }, 100)
+        const timer = setTimeout(() => saveBoard(board), 100)
         return () => clearTimeout(timer)
     }, [board])
 
+    const tasksIn = (sectionId: SectionId): Task[] =>
+        Option.getOrElse(Option.fromNullable(board.tasksBySection[sectionId]), () => [])
+
+    const updateTasks = (sectionId: SectionId, tasks: Task[]): BoardState => ({
+        ...board,
+        tasksBySection: { ...board.tasksBySection, [sectionId]: tasks },
+    })
+
     const model: BoardModel = {
         sections: board.sections,
-        tasksIn: (sectionId) => board.tasksBySection[sectionId] ?? [],
-        isEditing: (taskId) => editing?.taskId === taskId,
+        tasksIn,
 
-        addTask: (sectionId, afterIndex) => {
-            const newTaskId = makeId()
-            setBoard((prev) => {
-                const list = prev.tasksBySection[sectionId] ?? []
-                const insertAt = afterIndex === undefined ? list.length : afterIndex + 1
-                const newTask: Task = {
-                    id: newTaskId,
-                    title: makeTitle(''),
-                    done: false,
-                    order: orderBetween(
-                        list[insertAt - 1]?.order ?? null,
-                        list[insertAt]?.order ?? null,
-                    ),
-                }
-                return {
-                    ...prev,
-                    tasksBySection: {
-                        ...prev.tasksBySection,
-                        [sectionId]: [
-                            ...list.slice(0, insertAt),
-                            newTask,
-                            ...list.slice(insertAt),
-                        ],
-                    },
-                }
+        isEditing: (task) =>
+            Option.match(editing, {
+                onNone: () => false,
+                onSome: (e) => e.taskId === task.id,
+            }),
+
+        addTask: (sectionId, afterId) => {
+            Option.match(Task.insert(tasksIn(sectionId), afterId), {
+                onNone: () => {},
+                onSome: ({ tasks, newTaskId }) => {
+                    setBoard(updateTasks(sectionId, tasks))
+                    setEditing(Option.some({ sectionId, taskId: newTaskId }))
+                },
             })
-            setEditing({ sectionId, taskId: newTaskId })
         },
 
-        startEdit: (sectionId, taskId) => {
-            setEditing({ sectionId, taskId })
+        startEdit: (sectionId, task) => {
+            setEditing(Option.some({ sectionId, taskId: task.id }))
         },
 
-        commitEdit: (sectionId, taskId, title) => {
-            const trimmed = title.trim()
-            setBoard((prev) => {
-                const list = prev.tasksBySection[sectionId] ?? []
-                const nextList = trimmed
-                    ? list.map((t) =>
-                          t.id === taskId ? { ...t, title: makeTitle(trimmed) } : t,
-                      )
-                    : list.filter((t) => t.id !== taskId)
-                return {
-                    ...prev,
-                    tasksBySection: { ...prev.tasksBySection, [sectionId]: nextList },
-                }
-            })
-            setEditing(null)
+        commitEdit: (sectionId, task, title) => {
+            setBoard((prev) => ({
+                ...prev,
+                tasksBySection: {
+                    ...prev.tasksBySection,
+                    [sectionId]: Task.updateTitle(tasksIn(sectionId), task.id, title),
+                },
+            }))
+            setEditing(Option.none())
         },
 
         cancelEdit: () => {
-            if (editing === null) return
-            const { sectionId, taskId } = editing
-            setBoard((prev) => {
-                const list = prev.tasksBySection[sectionId] ?? []
-                const task = list.find((t) => t.id === taskId)
-                if (!task || task.title.trim() !== '') return prev
-                return {
-                    ...prev,
-                    tasksBySection: {
-                        ...prev.tasksBySection,
-                        [sectionId]: list.filter((t) => t.id !== taskId),
-                    },
-                }
+            Option.match(editing, {
+                onNone: () => {},
+                onSome: ({ sectionId, taskId }) => {
+                    setBoard((prev) => ({
+                        ...prev,
+                        tasksBySection: {
+                            ...prev.tasksBySection,
+                            [sectionId]: Task.removeIfEmpty(tasksIn(sectionId), taskId),
+                        },
+                    }))
+                    setEditing(Option.none())
+                },
             })
-            setEditing(null)
         },
 
-        toggleDone: (sectionId, taskId) => {
-            setBoard((prev) => {
-                const list = prev.tasksBySection[sectionId] ?? []
-                return {
-                    ...prev,
-                    tasksBySection: {
-                        ...prev.tasksBySection,
-                        [sectionId]: list.map((t) =>
-                            t.id === taskId ? { ...t, done: !t.done } : t,
-                        ),
-                    },
-                }
-            })
+        toggleDone: (sectionId, task) => {
+            setBoard(updateTasks(sectionId, Task.toggleDone(tasksIn(sectionId), task.id)))
         },
     }
 
