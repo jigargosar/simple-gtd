@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { ComponentProps, KeyboardEvent } from 'react'
 import { GripVerticalIcon, PlusIcon } from 'lucide-react'
-import { v4 as uuidv4 } from 'uuid'
-import type { Task, Section, BoardState } from './model'
-import { STORAGE_KEY, loadInitialBoard } from './model'
+import type { Task, Section, BoardState, Id } from './model'
+import { STORAGE_KEY, loadInitialBoard, makeId, makeTitle } from './model'
 
 
 function DragHandleButton(props: ComponentProps<'button'>) {
@@ -105,12 +104,12 @@ function SortableSection({
     onAddTaskBelow,
 }: {
     section: Section
-    tasks: Task[]
-    editingId: string | null
-    onStartEdit: (taskId: string) => void
-    onCommitEdit: (taskId: string, title: string) => void
+    tasks: readonly Task[]
+    editingId: Id | null
+    onStartEdit: (taskId: Id) => void
+    onCommitEdit: (taskId: Id, title: string) => void
     onCancelEdit: () => void
-    onToggleDone: (taskId: string) => void
+    onToggleDone: (taskId: Id) => void
     onAddTask: () => void
     onAddTaskBelow: (taskIndex: number) => void
 }) {
@@ -162,7 +161,7 @@ function AppHeader() {
 
 function TaskBoard() {
     const [board, setBoard] = useState<BoardState>(loadInitialBoard)
-    const [editingId, setEditingId] = useState<string | null>(null)
+    const [editingId, setEditingId] = useState<Id | null>(null)
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -175,20 +174,23 @@ function TaskBoard() {
         return () => clearTimeout(timer)
     }, [board])
 
-    function findSectionId(taskId: string): string | undefined {
+    function findSectionId(taskId: Id): Id | undefined {
         for (const [sid, list] of Object.entries(board.tasksBySection)) {
-            if (list.some((t) => t.id === taskId)) return sid
+            if (list.some((t) => t.id === taskId)) return sid as Id
         }
         return undefined
     }
 
-    function addTask(sectionId: string, afterIndex?: number) {
-        const newTask: Task = { id: uuidv4(), title: '', done: false }
+    function addTask(sectionId: Id, afterIndex?: number) {
+        const newTask: Task = { id: makeId(), title: makeTitle(''), done: false }
         setBoard((prev) => {
             const list = prev.tasksBySection[sectionId] ?? []
             const insertAt = afterIndex === undefined ? list.length : afterIndex + 1
-            const next = [...list]
-            next.splice(insertAt, 0, newTask)
+            const next = [
+                ...list.slice(0, insertAt),
+                newTask,
+                ...list.slice(insertAt),
+            ]
             return {
                 ...prev,
                 tasksBySection: { ...prev.tasksBySection, [sectionId]: next },
@@ -197,7 +199,7 @@ function TaskBoard() {
         setEditingId(newTask.id)
     }
 
-    function commitEdit(taskId: string, title: string) {
+    function commitEdit(taskId: Id, title: string) {
         const trimmed = title.trim()
         const sid = findSectionId(taskId)
         if (sid === undefined) {
@@ -207,7 +209,7 @@ function TaskBoard() {
         setBoard((prev) => {
             const list = prev.tasksBySection[sid] ?? []
             const nextList = trimmed
-                ? list.map((t) => (t.id === taskId ? { ...t, title: trimmed } : t))
+                ? list.map((t) => (t.id === taskId ? { ...t, title: makeTitle(trimmed) } : t))
                 : list.filter((t) => t.id !== taskId)
             return {
                 ...prev,
@@ -238,7 +240,7 @@ function TaskBoard() {
         setEditingId(null)
     }
 
-    function toggleDone(taskId: string) {
+    function toggleDone(taskId: Id) {
         const sid = findSectionId(taskId)
         if (sid === undefined) return
         setBoard((prev) => ({
