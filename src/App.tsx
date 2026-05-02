@@ -3,7 +3,6 @@ import type { KeyboardEvent } from 'react'
 import { GripVerticalIcon, PlusIcon } from 'lucide-react'
 import { Board } from './board'
 import type { Board as BoardType, EditingTask } from './board'
-import { Task } from './task'
 import type { Task as TaskType, TaskId } from './task'
 import type { Section as SectionType, SectionId } from './section'
 
@@ -148,9 +147,9 @@ export default function App() {
     }, [board])
 
     function addTask(sectionId: SectionId, afterId: TaskId | null) {
-        const result = Task.addNew(Board.tasksIn(board, sectionId), afterId)
+        const result = Board.addTask(board, sectionId, afterId)
         if (result === null) return
-        setBoard(Board.updateTasks(board, sectionId, result.tasks))
+        setBoard(result.board)
         setEditing({ sectionId, taskId: result.newTaskId })
     }
 
@@ -159,22 +158,19 @@ export default function App() {
     }
 
     function commitEdit(sectionId: SectionId, taskId: TaskId, title: string) {
-        const list = Board.tasksIn(board, sectionId)
-        setBoard(Board.updateTasks(board, sectionId, Task.updateTitle(list, taskId, title)))
+        setBoard(Board.commitEdit(board, sectionId, taskId, title))
         setEditing(null)
     }
 
     function cancelEdit() {
         if (editing === null) return
         const { sectionId, taskId } = editing
-        const list = Board.tasksIn(board, sectionId)
-        setBoard(Board.updateTasks(board, sectionId, Task.removeIfBlank(list, taskId)))
+        setBoard(Board.cancelEdit(board, sectionId, taskId))
         setEditing(null)
     }
 
     function toggleDone(sectionId: SectionId, taskId: TaskId) {
-        const list = Board.tasksIn(board, sectionId)
-        setBoard(Board.updateTasks(board, sectionId, Task.toggleDone(list, taskId)))
+        setBoard(Board.toggleDone(board, sectionId, taskId))
     }
 
     return (

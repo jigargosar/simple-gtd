@@ -97,4 +97,31 @@ function updateTasks(board: Board, sectionId: SectionId, tasks: TaskType[]): Boa
     }
 }
 
-export const Board = { load, save, tasksIn, updateTasks }
+function addTask(
+    board: Board,
+    sectionId: SectionId,
+    afterId: TaskId | null,
+): { board: Board; newTaskId: TaskId } | null {
+    const result = Task.addNew(tasksIn(board, sectionId), afterId)
+    if (result === null) return null
+    return { board: updateTasks(board, sectionId, result.tasks), newTaskId: result.newTaskId }
+}
+
+function commitEdit(
+    board: Board,
+    sectionId: SectionId,
+    taskId: TaskId,
+    title: string,
+): Board {
+    return updateTasks(board, sectionId, Task.updateTitle(tasksIn(board, sectionId), taskId, title))
+}
+
+function cancelEdit(board: Board, sectionId: SectionId, taskId: TaskId): Board {
+    return updateTasks(board, sectionId, Task.removeIfBlank(tasksIn(board, sectionId), taskId))
+}
+
+function toggleDone(board: Board, sectionId: SectionId, taskId: TaskId): Board {
+    return updateTasks(board, sectionId, Task.toggleDone(tasksIn(board, sectionId), taskId))
+}
+
+export const Board = { load, save, tasksIn, updateTasks, addTask, commitEdit, cancelEdit, toggleDone }
