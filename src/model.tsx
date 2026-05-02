@@ -61,19 +61,16 @@ const SEED: ReadonlyArray<{
     },
 ]
 
-function buildInitialBoard(): Option.Option<BoardState> {
-    return Option.flatMap(Section.makeMany(SEED), (sections) => {
-        const taskResults = SEED.map((s) => Task.makeMany(s.tasks))
-        if (taskResults.some(Option.isNone)) return Option.none()
-        const tasksBySection: TasksBySection = {}
-        for (let i = 0; i < sections.length; i++) {
-            tasksBySection[sections[i].id] = Option.getOrThrow(taskResults[i])
-        }
-        return Option.some({ sections, tasksBySection })
-    })
+function buildInitialBoard(): BoardState {
+    const sections = Section.makeMany(SEED)
+    const tasksBySection: TasksBySection = {}
+    for (let i = 0; i < sections.length; i++) {
+        tasksBySection[sections[i].id] = Task.makeMany(SEED[i].tasks)
+    }
+    return { sections, tasksBySection }
 }
 
-const INITIAL_BOARD: BoardState = Option.getOrThrow(buildInitialBoard())
+const INITIAL_BOARD: BoardState = buildInitialBoard()
 
 function loadInitialBoard(): BoardState {
     try {

@@ -1,6 +1,6 @@
 import { Option } from 'effect'
 import { v4 as uuidv4 } from 'uuid'
-import { keyBetween, nKeysBetween } from './fractional-ordering'
+import { generateKeyBetween, generateNKeysBetween } from 'fractional-indexing'
 
 export type TaskId = string
 export type TaskTitle = string
@@ -14,7 +14,7 @@ export type Task = {
     readonly order: TaskOrder
 }
 
-function makeTask(title: TaskTitle, order: TaskOrder, done = false): Task {
+function make(title: TaskTitle, order: TaskOrder, done = false): Task {
     return { id: uuidv4(), title, done, order }
 }
 
@@ -22,11 +22,9 @@ export const Task = {
     noId: Option.none() as MaybeTaskId,
     after: (id: TaskId): MaybeTaskId => Option.some(id),
 
-    makeMany(seeds: ReadonlyArray<{ title: string; done?: boolean }>): Option.Option<Task[]> {
-        return Option.map(
-            nKeysBetween<TaskOrder>(Option.none(), Option.none(), seeds.length),
-            (orders) => seeds.map((s, i) => makeTask(s.title, orders[i], s.done)),
-        )
+    makeMany(seeds: ReadonlyArray<{ title: string; done?: boolean }>): Task[] {
+        const orders = generateNKeysBetween(null, null, seeds.length)
+        return seeds.map((s, i) => make(s.title, orders[i], s.done))
     },
 
     insert(
@@ -38,15 +36,19 @@ export const Task = {
             onSome: (id) => list.findIndex((t) => t.id === id),
         })
         const insertAt = afterIndex + 1
-        const prev = Option.fromNullable(list[insertAt - 1]?.order)
-        const next = Option.fromNullable(list[insertAt]?.order)
-        return Option.map(keyBetween<TaskOrder>(prev, next), (order) => {
-            const newTask = makeTask('', order)
-            return {
+        try {
+            const order = generateKeyBetween(
+                list[insertAt - 1]?.order ?? null,
+                list[insertAt]?.order ?? null,
+            )
+            const newTask = make('', order)
+            return Option.some({
                 tasks: [...list.slice(0, insertAt), newTask, ...list.slice(insertAt)],
                 newTaskId: newTask.id,
-            }
-        })
+            })
+        } catch {
+            return Option.none()
+        }
     },
 
     updateTitle(list: readonly Task[], taskId: TaskId, title: TaskTitle): Task[] {
