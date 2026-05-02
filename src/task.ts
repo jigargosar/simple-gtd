@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 import { generateKeyBetween, generateNKeysBetween } from 'fractional-indexing'
+import type { SectionId } from './section'
 
 export type TaskId = string
 export type TaskTitle = string
@@ -7,22 +8,24 @@ export type TaskOrder = string
 
 export type Task = {
     readonly id: TaskId
+    readonly sectionId: SectionId
     readonly title: TaskTitle
     readonly done: boolean
     readonly order: TaskOrder
 }
 
-function make(title: TaskTitle, order: TaskOrder, done = false): Task {
-    return { id: uuidv4(), title, done, order }
+function make(sectionId: SectionId, title: TaskTitle, order: TaskOrder, done = false): Task {
+    return { id: uuidv4(), sectionId, title, done, order }
 }
 
-function makeMany(seeds: ReadonlyArray<{ title: string; done?: boolean }>): Task[] {
+function makeMany(sectionId: SectionId, seeds: ReadonlyArray<{ title: string; done?: boolean }>): Task[] {
     const orders = generateNKeysBetween(null, null, seeds.length)
-    return seeds.map((s, i) => make(s.title, orders[i], s.done))
+    return seeds.map((s, i) => make(sectionId, s.title, orders[i], s.done))
 }
 
 function addNew(
     list: readonly Task[],
+    sectionId: SectionId,
     afterId: TaskId | null,
 ): { tasks: Task[]; newTaskId: TaskId } {
     const afterIndex = afterId === null ? -1 : list.findIndex((t) => t.id === afterId)
@@ -31,7 +34,7 @@ function addNew(
         list[insertAt - 1]?.order ?? null,
         list[insertAt]?.order ?? null,
     )
-    const newTask = make('', order)
+    const newTask = make(sectionId, '', order)
     return {
         tasks: [...list.slice(0, insertAt), newTask, ...list.slice(insertAt)],
         newTaskId: newTask.id,

@@ -3,17 +3,15 @@ import { Section } from './section'
 import type { Task as TaskType, TaskId } from './task'
 import type { Section as SectionType, SectionId } from './section'
 
-export type TasksBySection = Record<SectionId, TaskType[]>
-
 export type EditingTask = { sectionId: SectionId; taskId: TaskId }
 
 export type Board = {
     readonly sections: readonly SectionType[]
-    readonly tasksBySection: TasksBySection
+    readonly tasks: readonly TaskType[]
     readonly editing: EditingTask | null
 }
 
-const STORAGE_KEY = 'simple-gtd:v3'
+const STORAGE_KEY = 'simple-gtd:v4'
 
 const SEED: ReadonlyArray<{
     title: string
@@ -62,11 +60,8 @@ const SEED: ReadonlyArray<{
 
 function buildSeedBoard(): Board {
     const sections = Section.makeMany(SEED)
-    const tasksBySection: TasksBySection = {}
-    for (let i = 0; i < sections.length; i++) {
-        tasksBySection[sections[i].id] = Task.makeMany(SEED[i].tasks)
-    }
-    return { sections, tasksBySection, editing: null }
+    const tasks = sections.flatMap((section, i) => Task.makeMany(section.id, SEED[i].tasks))
+    return { sections, tasks, editing: null }
 }
 
 function load(): Board {
@@ -89,13 +84,15 @@ function save(board: Board): void {
 }
 
 function tasksIn(board: Board, sectionId: SectionId): TaskType[] {
-    return board.tasksBySection[sectionId].slice().sort((a, b) => (a.order < b.order ? -1 : 1))
+    return board.tasks
+        .filter((t) => t.sectionId === sectionId)
+        .sort((a, b) => (a.order < b.order ? -1 : 1))
 }
 
-function updateTasks(board: Board, sectionId: SectionId, tasks: TaskType[]): Board {
+function replaceTasks(board: Board, sectionId: SectionId, updated: TaskType[]): Board {
     return {
         ...board,
-        tasksBySection: { ...board.tasksBySection, [sectionId]: tasks },
+        tasks: [...board.tasks.filter((t) => t.sectionId !== sectionId), ...updated],
     }
 }
 
@@ -104,24 +101,20 @@ function startEdit(board: Board, sectionId: SectionId, taskId: TaskId): Board {
 }
 
 function addTask(board: Board, sectionId: SectionId, afterId: TaskId | null): Board {
-    const result = Task.addNew(tasksIn(board, sectionId), afterId)
-    return { ...updateTasks(board, sectionId, result.tasks), editing: { sectionId, taskId: result.newTaskId } }
+    const result = Task.addNew(tasksIn(board, sectionId), sectionId, afterId)
+    return { ...replaceTasks(board, sectionId, result.tasks), editing: { sectionId, taskId: result.newTaskId } }
 }
 
 function commitEdit(board: Board, sectionId: SectionId, taskId: TaskId, title: string): Board {
-    return { ...updateTasks(board, sectionId, Task.updateTitle(tasksIn(board, sectionId), taskId, title)), editing: null }
+    return { ...replaceTasks(board, sectionId, Task.updateTitle(tasksIn(board, sectionId), taskId, title)), editing: null }
 }
 
 function cancelEdit(board: Board, sectionId: SectionId, taskId: TaskId): Board {
-    return { ...updateTasks(board, sectionId, Task.removeIfBlank(tasksIn(board, sectionId), taskId)), editing: null }
+    return { ...replaceTasks(board, sectionId, Task.removeIfBlank(tasksIn(board, sectionId), taskId)), editing: null }
 }
 
 function toggleDone(board: Board, sectionId: SectionId, taskId: TaskId): Board {
-    return updateTasks(board, sectionId, Task.toggleDone(tasksIn(board, sectionId), taskId))
+    return replaceTasks(board, sectionId, Task.toggleDone(tasksIn(board, sectionId), taskId))
 }
 
-function isEditing(board: Board, sectionId: SectionId, taskId: TaskId): boolean {
-    return board.editing?.sectionId === sectionId && board.editing?.taskId === taskId
-}
-
-export const Board = { load, save, tasksIn, updateTasks, startEdit, addTask, commitEdit, cancelEdit, toggleDone, isEditing }
+export const Board = { load, save, tasksIn, startEdit, addTask, commitEdit, cancelEdit, toggleDone }
