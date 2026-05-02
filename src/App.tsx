@@ -135,34 +135,30 @@ function BoardView() {
     const { board, editingId, startEdit, addTask, commitEdit, cancelEdit, toggleDone } = useBoardState()
 
     return (
-        <main className="mx-auto max-w-2xl px-8 py-10">
-            <div className="flex flex-col gap-8">
-                {board.sections.map((section) => (
-                    <SectionView
-                        key={section.id}
-                        section={section}
-                        tasks={board.tasksBySection[section.id] ?? []}
-                        editingId={editingId}
-                        onStartEdit={startEdit}
-                        onCommitEdit={commitEdit}
-                        onCancelEdit={cancelEdit}
-                        onToggleDone={toggleDone}
-                        onAddTask={() => addTask(section.id)}
-                        onAddTaskBelow={(taskIndex) => addTask(section.id, taskIndex)}
-                    />
-                ))}
-            </div>
+        <main className="mx-auto flex max-w-2xl flex-col gap-8 px-8 py-10">
+            {board.sections.map((section) => (
+                <SectionView
+                    key={section.id}
+                    section={section}
+                    tasks={board.tasksBySection[section.id] ?? []}
+                    editingId={editingId}
+                    onStartEdit={startEdit}
+                    onCommitEdit={commitEdit}
+                    onCancelEdit={cancelEdit}
+                    onToggleDone={toggleDone}
+                    onAddTask={() => addTask(section.id)}
+                    onAddTaskBelow={(taskIndex) => addTask(section.id, taskIndex)}
+                />
+            ))}
         </main>
     )
 }
 
 function AppHeader() {
     return (
-        <header className="px-8 py-5">
-            <div className="mx-auto flex max-w-2xl items-baseline gap-3">
-                <h1 className="text-2xl font-semibold text-title">SimpleGTD</h1>
-                <span className="text-xs tracking-widest text-blue uppercase">Getting Things Done</span>
-            </div>
+        <header className="mx-auto flex max-w-2xl items-baseline gap-3 px-8 py-5">
+            <h1 className="text-2xl font-semibold text-title">SimpleGTD</h1>
+            <span className="text-xs tracking-widest text-blue uppercase">Getting Things Done</span>
         </header>
     )
 }
