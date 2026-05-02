@@ -128,7 +128,7 @@ function DragHandleButton(props: ComponentProps<'button'>) {
             {...props}
             className="touch-none rounded p-2 text-label-muted transition-colors hover:text-label"
         >
-            <GripVerticalIcon size={16} />
+            <GripVerticalIcon size={20} />
         </button>
     )
 }
@@ -139,7 +139,7 @@ function AddButton(props: ComponentProps<'button'>) {
             {...props}
             className="rounded p-2 text-label-muted transition-colors hover:text-blue"
         >
-            <PlusIcon size={16} />
+            <PlusIcon size={20} />
         </button>
     )
 }
@@ -185,7 +185,7 @@ function SortableTask({
         <div
             ref={ref}
             data-dragging={isDragging}
-            className="group/task relative flex items-center gap-3 rounded bg-page px-4 py-3 data-[dragging=true]:opacity-30"
+            className="group/task relative flex items-center gap-3 rounded bg-page px-4 py-2 data-[dragging=true]:opacity-30"
         >
             <div className="absolute top-0 left-0 flex h-full -translate-x-full items-center gap-0.5 pr-1 opacity-0 transition-opacity group-hover/task:opacity-100">
                 <DragHandleButton ref={handleRef} />
