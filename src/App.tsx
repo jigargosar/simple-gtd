@@ -148,7 +148,6 @@ export default function App() {
 
     function addTask(sectionId: SectionId, afterId: TaskId | null) {
         const result = Board.addTask(board, sectionId, afterId)
-        if (result === null) return
         setBoard(result.board)
         setEditing({ sectionId, taskId: result.newTaskId })
     }

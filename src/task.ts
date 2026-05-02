@@ -24,21 +24,17 @@ function makeMany(seeds: ReadonlyArray<{ title: string; done?: boolean }>): Task
 function addNew(
     list: readonly Task[],
     afterId: TaskId | null,
-): { tasks: Task[]; newTaskId: TaskId } | null {
+): { tasks: Task[]; newTaskId: TaskId } {
     const afterIndex = afterId === null ? -1 : list.findIndex((t) => t.id === afterId)
     const insertAt = afterIndex + 1
-    try {
-        const order = generateKeyBetween(
-            list[insertAt - 1]?.order ?? null,
-            list[insertAt]?.order ?? null,
-        )
-        const newTask = make('', order)
-        return {
-            tasks: [...list.slice(0, insertAt), newTask, ...list.slice(insertAt)],
-            newTaskId: newTask.id,
-        }
-    } catch {
-        return null
+    const order = generateKeyBetween(
+        list[insertAt - 1]?.order ?? null,
+        list[insertAt]?.order ?? null,
+    )
+    const newTask = make('', order)
+    return {
+        tasks: [...list.slice(0, insertAt), newTask, ...list.slice(insertAt)],
+        newTaskId: newTask.id,
     }
 }
 

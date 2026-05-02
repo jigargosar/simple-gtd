@@ -71,6 +71,7 @@ function buildSeedBoard(): Board {
 function load(): Board {
     try {
         const raw = localStorage.getItem(STORAGE_KEY)
+        // TODO: validate parsed shape before casting — corrupt/old-schema data will blow up downstream
         if (raw !== null) return JSON.parse(raw) as Board
     } catch {
         // fall through to seed
@@ -87,7 +88,7 @@ function save(board: Board): void {
 }
 
 function tasksIn(board: Board, sectionId: SectionId): TaskType[] {
-    return board.tasksBySection[sectionId] ?? []
+    return board.tasksBySection[sectionId].slice().sort((a, b) => (a.order < b.order ? -1 : 1))
 }
 
 function updateTasks(board: Board, sectionId: SectionId, tasks: TaskType[]): Board {
@@ -101,9 +102,8 @@ function addTask(
     board: Board,
     sectionId: SectionId,
     afterId: TaskId | null,
-): { board: Board; newTaskId: TaskId } | null {
+): { board: Board; newTaskId: TaskId } {
     const result = Task.addNew(tasksIn(board, sectionId), afterId)
-    if (result === null) return null
     return { board: updateTasks(board, sectionId, result.tasks), newTaskId: result.newTaskId }
 }
 
