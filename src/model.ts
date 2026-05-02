@@ -1,19 +1,21 @@
 import { v4 as uuidv4 } from 'uuid'
 
+export type Id = string
+
 export type Task = {
-    id: string
+    id: Id
     title: string
     done: boolean
 }
 
 export type Section = {
-    id: string
+    id: Id
     title: string
 }
 
 export type BoardState = {
     sections: Section[]
-    tasksBySection: Record<string, Task[]>
+    tasksBySection: Record<Id, Task[]>
 }
 
 export const STORAGE_KEY = 'simple-gtd:v2'
@@ -32,7 +34,7 @@ const INITIAL_SECTIONS: Section[] = [
     { id: S_SOMEDAY, title: 'Someday / Maybe' },
 ]
 
-const INITIAL_TASKS_BY_SECTION: Record<string, Task[]> = {
+const INITIAL_TASKS_BY_SECTION: Record<Id, Task[]> = {
     [S_INBOX]: [
         { id: uuidv4(), title: 'Read article on deep work', done: false },
         { id: uuidv4(), title: "Reply to Sarah's email", done: false },
