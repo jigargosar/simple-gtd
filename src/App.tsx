@@ -2,7 +2,7 @@ import { Fragment } from 'react'
 import type { KeyboardEvent } from 'react'
 import { GripVerticalIcon, PlusIcon } from 'lucide-react'
 import { Board } from './board'
-import type { EditingTask } from './board'
+import type { Editing } from './board'
 import type { Task as TaskType, TaskId } from './task'
 import type { Section as SectionType, SectionId } from './section'
 import { useBoard } from './useBoard'
@@ -81,15 +81,31 @@ function TaskView({ task, isEditing, onAdd, onStartEdit, onCommitEdit, onCancelE
 type SectionViewProps = {
     section: SectionType
     tasks: TaskType[]
-    editing: EditingTask | null
+    editing: Editing | null
     onAdd: (sectionId: SectionId, afterId: TaskId | null) => void
-    onStartEdit: (sectionId: SectionId, taskId: TaskId) => void
-    onCommitEdit: (sectionId: SectionId, taskId: TaskId, title: string) => void
-    onCancelEdit: (sectionId: SectionId, taskId: TaskId) => void
+    onStartEditSection: (sectionId: SectionId) => void
+    onCommitEditSection: (sectionId: SectionId, title: string) => void
+    onCancelEditSection: (sectionId: SectionId) => void
+    onStartEditTask: (sectionId: SectionId, taskId: TaskId) => void
+    onCommitEditTask: (sectionId: SectionId, taskId: TaskId, title: string) => void
+    onCancelEditTask: (sectionId: SectionId, taskId: TaskId) => void
     onToggleDone: (sectionId: SectionId, taskId: TaskId) => void
 }
 
-function SectionView({ section, tasks, editing, onAdd, onStartEdit, onCommitEdit, onCancelEdit, onToggleDone }: SectionViewProps) {
+function SectionView({
+    section, tasks, editing,
+    onAdd,
+    onStartEditSection, onCommitEditSection, onCancelEditSection,
+    onStartEditTask, onCommitEditTask, onCancelEditTask,
+    onToggleDone,
+}: SectionViewProps) {
+    const isSectionEditing = editing?.tag === 'section' && editing.sectionId === section.id
+
+    function handleSectionKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+        if (e.key === 'Enter') e.currentTarget.blur()
+        else if (e.key === 'Escape') onCancelEditSection(section.id)
+    }
+
     return (
         <section>
             <div className="group/section relative">
@@ -97,9 +113,24 @@ function SectionView({ section, tasks, editing, onAdd, onStartEdit, onCommitEdit
                     <Controls onAdd={() => onAdd(section.id, null)} />
                 </div>
                 <div className="flex items-center px-4 py-3">
-                    <h2 className="text-blue text-xs font-semibold tracking-[0.2em] uppercase">
-                        {section.title}
-                    </h2>
+                    {isSectionEditing ? (
+                        <input
+                            autoFocus
+                            defaultValue={section.title}
+                            onBlur={(e) => onCommitEditSection(section.id, e.currentTarget.value)}
+                            onKeyDown={handleSectionKeyDown}
+                            className="text-blue w-full bg-transparent text-xs font-semibold tracking-[0.2em] uppercase outline-none"
+                        />
+                    ) : (
+                        <h2
+                            onClick={() => onStartEditSection(section.id)}
+                            className="text-blue cursor-text text-xs font-semibold tracking-[0.2em] uppercase"
+                        >
+                            {section.title || (
+                                <span className="text-label-muted italic normal-case">empty — click to edit</span>
+                            )}
+                        </h2>
+                    )}
                 </div>
             </div>
             <div className="flex min-h-2 flex-col">
@@ -108,11 +139,11 @@ function SectionView({ section, tasks, editing, onAdd, onStartEdit, onCommitEdit
                     <Fragment key={task.id}>
                         <TaskView
                             task={task}
-                            isEditing={editing?.sectionId === section.id && editing?.taskId === task.id}
+                            isEditing={editing?.tag === 'task' && editing.sectionId === section.id && editing.taskId === task.id}
                             onAdd={(afterId) => onAdd(section.id, afterId)}
-                            onStartEdit={() => onStartEdit(section.id, task.id)}
-                            onCommitEdit={(title) => onCommitEdit(section.id, task.id, title)}
-                            onCancelEdit={() => onCancelEdit(section.id, task.id)}
+                            onStartEdit={() => onStartEditTask(section.id, task.id)}
+                            onCommitEdit={(title) => onCommitEditTask(section.id, task.id, title)}
+                            onCancelEdit={() => onCancelEditTask(section.id, task.id)}
                             onToggleDone={() => onToggleDone(section.id, task.id)}
                         />
                         <Beacon />
@@ -148,9 +179,12 @@ export default function App() {
                         tasks={Board.tasksIn(board, section.id)}
                         editing={board.editing}
                         onAdd={actions.addTask}
-                        onStartEdit={actions.startEdit}
-                        onCommitEdit={actions.commitEdit}
-                        onCancelEdit={actions.cancelEdit}
+                        onStartEditSection={actions.startEditSection}
+                        onCommitEditSection={actions.commitEditSection}
+                        onCancelEditSection={actions.cancelEditSection}
+                        onStartEditTask={actions.startEditTask}
+                        onCommitEditTask={actions.commitEditTask}
+                        onCancelEditTask={actions.cancelEditTask}
                         onToggleDone={actions.toggleDone}
                     />
                 ))}

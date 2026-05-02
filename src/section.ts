@@ -20,4 +20,15 @@ function makeMany(seeds: ReadonlyArray<{ title: string }>): Section[] {
     return seeds.map((s, i) => make(s.title, orders[i]))
 }
 
-export const Section = { makeMany }
+function updateTitle(sections: readonly Section[], sectionId: SectionId, title: SectionTitle): Section[] {
+    const trimmed = title.trim()
+    return trimmed
+        ? sections.map((s) => (s.id === sectionId ? { ...s, title: trimmed } : s))
+        : sections.filter((s) => s.id !== sectionId)
+}
+
+function removeIfBlank(sections: readonly Section[], sectionId: SectionId): Section[] {
+    return sections.filter((s) => s.id !== sectionId || s.title.trim() !== '')
+}
+
+export const Section = { makeMany, updateTitle, removeIfBlank }
