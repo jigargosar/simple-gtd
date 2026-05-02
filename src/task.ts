@@ -1,11 +1,9 @@
-import { Option } from 'effect'
 import { v4 as uuidv4 } from 'uuid'
 import { generateKeyBetween, generateNKeysBetween } from 'fractional-indexing'
 
 export type TaskId = string
 export type TaskTitle = string
 export type TaskOrder = string
-export type MaybeTaskId = Option.Option<TaskId>
 
 export type Task = {
     readonly id: TaskId
@@ -19,22 +17,16 @@ function make(title: TaskTitle, order: TaskOrder, done = false): Task {
 }
 
 export const Task = {
-    noId: Option.none() as MaybeTaskId,
-    after: (id: TaskId): MaybeTaskId => Option.some(id),
-
     makeMany(seeds: ReadonlyArray<{ title: string; done?: boolean }>): Task[] {
         const orders = generateNKeysBetween(null, null, seeds.length)
         return seeds.map((s, i) => make(s.title, orders[i], s.done))
     },
 
-    insert(
+    addNew(
         list: readonly Task[],
-        afterId: MaybeTaskId,
-    ): Option.Option<{ tasks: Task[]; newTaskId: TaskId }> {
-        const afterIndex = Option.match(afterId, {
-            onNone: () => -1,
-            onSome: (id) => list.findIndex((t) => t.id === id),
-        })
+        afterId: TaskId | null,
+    ): { tasks: Task[]; newTaskId: TaskId } | null {
+        const afterIndex = afterId === null ? -1 : list.findIndex((t) => t.id === afterId)
         const insertAt = afterIndex + 1
         try {
             const order = generateKeyBetween(
@@ -42,12 +34,12 @@ export const Task = {
                 list[insertAt]?.order ?? null,
             )
             const newTask = make('', order)
-            return Option.some({
+            return {
                 tasks: [...list.slice(0, insertAt), newTask, ...list.slice(insertAt)],
                 newTaskId: newTask.id,
-            })
+            }
         } catch {
-            return Option.none()
+            return null
         }
     },
 
@@ -58,7 +50,7 @@ export const Task = {
             : list.filter((t) => t.id !== taskId)
     },
 
-    removeIfEmpty(list: readonly Task[], taskId: TaskId): Task[] {
+    removeIfBlank(list: readonly Task[], taskId: TaskId): Task[] {
         return list.filter((t) => t.id !== taskId || t.title.trim() !== '')
     },
 
