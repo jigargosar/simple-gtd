@@ -1,32 +1,27 @@
 import { Fragment, useEffect, useState } from 'react'
-import type { ComponentProps, KeyboardEvent } from 'react'
+import type { KeyboardEvent } from 'react'
 import { GripVerticalIcon, PlusIcon } from 'lucide-react'
 import type { Task, Section, BoardState, Id } from './model'
 import { STORAGE_KEY, loadInitialBoard, makeId, makeTitle, orderBetween } from './model'
 
-function DragHandleButton(props: ComponentProps<'button'>) {
+function Controls({ onAdd }: { onAdd: () => void }) {
     return (
-        <button
-            {...props}
-            className="text-label-muted hover:text-label touch-none rounded p-2 transition-colors"
-        >
-            <GripVerticalIcon size={20} />
-        </button>
+        <div className="absolute top-0 left-0 flex h-full -translate-x-full items-center gap-0.5 pr-1">
+            <button className="touch-none rounded p-2 text-label-muted transition-colors hover:text-label">
+                <GripVerticalIcon size={20} />
+            </button>
+            <button onClick={onAdd} className="rounded p-2 text-label-muted transition-colors hover:text-blue">
+                <PlusIcon size={20} />
+            </button>
+        </div>
     )
 }
 
-function AddButton(props: ComponentProps<'button'>) {
-    return (
-        <button
-            {...props}
-            className="text-label-muted hover:text-blue rounded p-2 transition-colors"
-        >
-            <PlusIcon size={20} />
-        </button>
-    )
+function Beacon() {
+    return <div style={{ height: 1, backgroundColor: 'dodgerblue' }} />
 }
 
-function SortableTask({
+function TaskView({
     task,
     isEditing,
     onStartEdit,
@@ -44,24 +39,20 @@ function SortableTask({
     onAddBelow: () => void
 }) {
     function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-        if (e.key === 'Enter') {
-            e.currentTarget.blur()
-        } else if (e.key === 'Escape') {
-            onCancelEdit()
-        }
+        if (e.key === 'Enter') e.currentTarget.blur()
+        else if (e.key === 'Escape') onCancelEdit()
     }
 
     return (
-        <div className="group/task bg-page relative flex items-center gap-3 rounded px-4 py-2">
-            <div className="absolute top-0 left-0 flex h-full -translate-x-full items-center gap-0.5 pr-1 opacity-0 transition-opacity group-hover/task:opacity-100">
-                <DragHandleButton />
-                <AddButton onClick={onAddBelow} />
+        <div className="group/task relative flex items-center gap-3 rounded bg-page px-4 py-2">
+            <div className="opacity-0 transition-opacity group-hover/task:opacity-100">
+                <Controls onAdd={onAddBelow} />
             </div>
             <input
                 type="checkbox"
                 checked={task.done}
                 onChange={onToggleDone}
-                className="accent-blue h-4 w-4 cursor-pointer"
+                className="h-4 w-4 cursor-pointer accent-blue"
             />
             {isEditing ? (
                 <input
@@ -69,7 +60,7 @@ function SortableTask({
                     defaultValue={task.title}
                     onBlur={(e) => onCommitEdit(e.currentTarget.value)}
                     onKeyDown={handleKeyDown}
-                    className="text-task flex-1 bg-transparent text-sm leading-relaxed tracking-wide outline-none"
+                    className="flex-1 bg-transparent text-sm leading-relaxed tracking-wide text-task outline-none"
                 />
             ) : (
                 <span
@@ -78,18 +69,14 @@ function SortableTask({
                         task.done ? 'text-task-muted line-through' : 'text-task'
                     }`}
                 >
-                    {task.title || (
-                        <span className="text-label-muted italic">
-                            empty — click to edit
-                        </span>
-                    )}
+                    {task.title || <span className="italic text-label-muted">empty — click to edit</span>}
                 </span>
             )}
         </div>
     )
 }
 
-function SortableSection({
+function SectionView({
     section,
     tasks,
     editingId,
@@ -112,13 +99,12 @@ function SortableSection({
 }) {
     return (
         <section>
-            <div className="group/section-header relative">
-                <div className="absolute top-0 left-0 flex h-full -translate-x-full items-center gap-0.5 pr-1 opacity-0 transition-opacity group-hover/section-header:opacity-100">
-                    <DragHandleButton />
-                    <AddButton onClick={onAddTask} />
+            <div className="group/section relative">
+                <div className="opacity-0 transition-opacity group-hover/section:opacity-100">
+                    <Controls onAdd={onAddTask} />
                 </div>
                 <div className="flex items-center px-4 py-3">
-                    <h2 className="text-blue text-xs font-semibold tracking-[0.2em] uppercase">
+                    <h2 className="text-xs font-semibold tracking-[0.2em] text-blue uppercase">
                         {section.title}
                     </h2>
                 </div>
@@ -127,7 +113,7 @@ function SortableSection({
                 <Beacon />
                 {tasks.map((task, taskIndex) => (
                     <Fragment key={task.id}>
-                        <SortableTask
+                        <TaskView
                             task={task}
                             isEditing={editingId === task.id}
                             onStartEdit={() => onStartEdit(task.id)}
@@ -144,24 +130,7 @@ function SortableSection({
     )
 }
 
-function Beacon() {
-    return <div style={{ height: 1, backgroundColor: 'dodgerblue' }} />
-}
-
-function AppHeader() {
-    return (
-        <header className="px-8 py-5">
-            <div className="mx-auto flex max-w-2xl items-baseline gap-3">
-                <h1 className="text-title text-2xl font-semibold">SimpleGTD</h1>
-                <span className="text-blue text-xs tracking-widest uppercase">
-                    Getting Things Done
-                </span>
-            </div>
-        </header>
-    )
-}
-
-function TaskBoard() {
+function useBoardState() {
     const [board, setBoard] = useState<BoardState>(loadInitialBoard)
     const [editingId, setEditingId] = useState<Id | null>(null)
 
@@ -215,9 +184,7 @@ function TaskBoard() {
         setBoard((prev) => {
             const list = prev.tasksBySection[sid] ?? []
             const nextList = trimmed
-                ? list.map((t) =>
-                      t.id === taskId ? { ...t, title: makeTitle(trimmed) } : t,
-                  )
+                ? list.map((t) => (t.id === taskId ? { ...t, title: makeTitle(trimmed) } : t))
                 : list.filter((t) => t.id !== taskId)
             return {
                 ...prev,
@@ -238,9 +205,7 @@ function TaskBoard() {
                     ...prev,
                     tasksBySection: {
                         ...prev.tasksBySection,
-                        [sid]: (prev.tasksBySection[sid] ?? []).filter(
-                            (t) => t.id !== editingId,
-                        ),
+                        [sid]: (prev.tasksBySection[sid] ?? []).filter((t) => t.id !== editingId),
                     },
                 }))
             }
@@ -262,16 +227,26 @@ function TaskBoard() {
         }))
     }
 
+    function startEdit(taskId: Id) {
+        setEditingId(taskId)
+    }
+
+    return { board, editingId, startEdit, addTask, commitEdit, cancelEdit, toggleDone }
+}
+
+function BoardView() {
+    const { board, editingId, startEdit, addTask, commitEdit, cancelEdit, toggleDone } = useBoardState()
+
     return (
         <main className="mx-auto max-w-2xl px-8 py-10">
             <div className="flex flex-col gap-8">
                 {board.sections.map((section) => (
-                    <SortableSection
+                    <SectionView
                         key={section.id}
                         section={section}
                         tasks={board.tasksBySection[section.id] ?? []}
                         editingId={editingId}
-                        onStartEdit={setEditingId}
+                        onStartEdit={startEdit}
                         onCommitEdit={commitEdit}
                         onCancelEdit={cancelEdit}
                         onToggleDone={toggleDone}
@@ -284,11 +259,22 @@ function TaskBoard() {
     )
 }
 
+function AppHeader() {
+    return (
+        <header className="px-8 py-5">
+            <div className="mx-auto flex max-w-2xl items-baseline gap-3">
+                <h1 className="text-2xl font-semibold text-title">SimpleGTD</h1>
+                <span className="text-xs tracking-widest text-blue uppercase">Getting Things Done</span>
+            </div>
+        </header>
+    )
+}
+
 export default function App() {
     return (
-        <div className="bg-page text-task min-h-screen">
+        <div className="min-h-screen bg-page text-task">
             <AppHeader />
-            <TaskBoard />
+            <BoardView />
         </div>
     )
 }
