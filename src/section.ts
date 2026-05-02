@@ -15,9 +15,9 @@ function make(title: SectionTitle, order: SectionOrder): Section {
     return { id: uuidv4(), title, order }
 }
 
-export const Section = {
-    makeMany(seeds: ReadonlyArray<{ title: string }>): Section[] {
-        const orders = generateNKeysBetween(null, null, seeds.length)
-        return seeds.map((s, i) => make(s.title, orders[i]))
-    },
+function makeMany(seeds: ReadonlyArray<{ title: string }>): Section[] {
+    const orders = generateNKeysBetween(null, null, seeds.length)
+    return seeds.map((s, i) => make(s.title, orders[i]))
 }
+
+export const Section = { makeMany }

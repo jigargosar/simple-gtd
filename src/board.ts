@@ -68,33 +68,33 @@ function buildSeedBoard(): Board {
     return { sections, tasksBySection }
 }
 
-export const Board = {
-    load(): Board {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY)
-            if (raw !== null) return JSON.parse(raw) as Board
-        } catch {
-            // fall through to seed
-        }
-        return buildSeedBoard()
-    },
-
-    save(board: Board): void {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(board))
-        } catch {
-            // ignore quota / privacy mode errors
-        }
-    },
-
-    tasksIn(board: Board, sectionId: SectionId): TaskType[] {
-        return board.tasksBySection[sectionId] ?? []
-    },
-
-    updateTasks(board: Board, sectionId: SectionId, tasks: TaskType[]): Board {
-        return {
-            ...board,
-            tasksBySection: { ...board.tasksBySection, [sectionId]: tasks },
-        }
-    },
+function load(): Board {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY)
+        if (raw !== null) return JSON.parse(raw) as Board
+    } catch {
+        // fall through to seed
+    }
+    return buildSeedBoard()
 }
+
+function save(board: Board): void {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(board))
+    } catch {
+        // ignore quota / privacy mode errors
+    }
+}
+
+function tasksIn(board: Board, sectionId: SectionId): TaskType[] {
+    return board.tasksBySection[sectionId] ?? []
+}
+
+function updateTasks(board: Board, sectionId: SectionId, tasks: TaskType[]): Board {
+    return {
+        ...board,
+        tasksBySection: { ...board.tasksBySection, [sectionId]: tasks },
+    }
+}
+
+export const Board = { load, save, tasksIn, updateTasks }
