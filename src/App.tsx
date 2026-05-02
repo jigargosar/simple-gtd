@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ComponentProps, KeyboardEvent } from 'react'
 import { GripVerticalIcon, PlusIcon } from 'lucide-react'
 import type { Task, Section, BoardState, Id } from './model'
-import { STORAGE_KEY, loadInitialBoard, makeId, makeTitle } from './model'
+import { STORAGE_KEY, loadInitialBoard, makeId, makeTitle, orderBetween } from './model'
 
 
 function DragHandleButton(props: ComponentProps<'button'>) {
@@ -182,10 +182,13 @@ function TaskBoard() {
     }
 
     function addTask(sectionId: Id, afterIndex?: number) {
-        const newTask: Task = { id: makeId(), title: makeTitle(''), done: false }
+        const newId = makeId()
         setBoard((prev) => {
             const list = prev.tasksBySection[sectionId] ?? []
             const insertAt = afterIndex === undefined ? list.length : afterIndex + 1
+            const prev_ = list[insertAt - 1]?.order ?? null
+            const next_ = list[insertAt]?.order ?? null
+            const newTask: Task = { id: newId, title: makeTitle(''), done: false, order: orderBetween(prev_, next_) }
             const next = [
                 ...list.slice(0, insertAt),
                 newTask,
@@ -196,7 +199,7 @@ function TaskBoard() {
                 tasksBySection: { ...prev.tasksBySection, [sectionId]: next },
             }
         })
-        setEditingId(newTask.id)
+        setEditingId(newId)
     }
 
     function commitEdit(taskId: Id, title: string) {

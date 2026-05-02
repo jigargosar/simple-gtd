@@ -1,21 +1,26 @@
 import { Schema, Effect } from 'effect'
 import { v4 as uuidv4 } from 'uuid'
+import { generateKeyBetween, generateNKeysBetween } from 'fractional-indexing'
 
 export const Id = Schema.String.pipe(Schema.brand('Id'))
 export const Title = Schema.String.pipe(Schema.brand('Title'))
+export const Order = Schema.String.pipe(Schema.brand('Order'))
 
 export type Id = Schema.Schema.Type<typeof Id>
 export type Title = Schema.Schema.Type<typeof Title>
+export type Order = Schema.Schema.Type<typeof Order>
 
 export const Task = Schema.Struct({
     id: Id,
     title: Title,
     done: Schema.Boolean,
+    order: Order,
 })
 
 export const Section = Schema.Struct({
     id: Id,
     title: Title,
+    order: Order,
 })
 
 export const BoardState = Schema.Struct({
@@ -35,6 +40,14 @@ export function makeId(): Id {
 
 export function makeTitle(t: string): Title {
     return Title.make(t)
+}
+
+export function makeOrder(o: string): Order {
+    return Order.make(o)
+}
+
+export function orderBetween(prev: Order | null, next: Order | null): Order {
+    return Order.make(generateKeyBetween(prev, next))
 }
 
 const SEED: ReadonlyArray<{ title: string; tasks: ReadonlyArray<{ title: string; done?: boolean }> }> = [
@@ -80,16 +93,20 @@ const SEED: ReadonlyArray<{ title: string; tasks: ReadonlyArray<{ title: string;
 ]
 
 function buildInitialBoard(): BoardState {
+    const sectionOrders = generateNKeysBetween(null, null, SEED.length)
     const sections: Section[] = []
     const tasksBySection: Record<Id, Task[]> = {} as Record<Id, Task[]>
 
-    for (const s of SEED) {
+    for (let i = 0; i < SEED.length; i++) {
+        const s = SEED[i]
         const sectionId = makeId()
-        sections.push({ id: sectionId, title: makeTitle(s.title) })
-        tasksBySection[sectionId] = s.tasks.map((t) => ({
+        sections.push({ id: sectionId, title: makeTitle(s.title), order: makeOrder(sectionOrders[i]) })
+        const taskOrders = generateNKeysBetween(null, null, s.tasks.length)
+        tasksBySection[sectionId] = s.tasks.map((t, j) => ({
             id: makeId(),
             title: makeTitle(t.title),
             done: t.done ?? false,
+            order: makeOrder(taskOrders[j]),
         }))
     }
 
