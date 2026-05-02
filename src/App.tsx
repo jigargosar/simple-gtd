@@ -13,55 +13,53 @@ type Task = {
     done: boolean
 }
 
-type SectionMeta = {
+type Section = {
     id: string
     title: string
 }
 
 type BoardState = {
+    sections: Section[]
     tasksBySection: Record<string, Task[]>
-    sectionOrder: string[]
 }
 
-const STORAGE_KEY = 'simple-gtd:v1'
+const STORAGE_KEY = 'simple-gtd:v2'
 
-const INITIAL_SECTION_ORDER: string[] = [
-    'inbox',
-    'next',
-    'projects',
-    'waiting',
-    'someday',
+const S_INBOX = uuidv4()
+const S_NEXT = uuidv4()
+const S_PROJECTS = uuidv4()
+const S_WAITING = uuidv4()
+const S_SOMEDAY = uuidv4()
+
+const INITIAL_SECTIONS: Section[] = [
+    { id: S_INBOX, title: 'Inbox' },
+    { id: S_NEXT, title: 'Next Actions' },
+    { id: S_PROJECTS, title: 'Projects' },
+    { id: S_WAITING, title: 'Waiting For' },
+    { id: S_SOMEDAY, title: 'Someday / Maybe' },
 ]
 
-const SECTION_META: Record<string, SectionMeta> = {
-    inbox: { id: 'inbox', title: 'Inbox' },
-    next: { id: 'next', title: 'Next Actions' },
-    projects: { id: 'projects', title: 'Projects' },
-    waiting: { id: 'waiting', title: 'Waiting For' },
-    someday: { id: 'someday', title: 'Someday / Maybe' },
-}
-
 const INITIAL_TASKS_BY_SECTION: Record<string, Task[]> = {
-    inbox: [
+    [S_INBOX]: [
         { id: uuidv4(), title: 'Read article on deep work', done: false },
         { id: uuidv4(), title: "Reply to Sarah's email", done: false },
         { id: uuidv4(), title: 'Look into new invoicing tool', done: false },
     ],
-    next: [
+    [S_NEXT]: [
         { id: uuidv4(), title: 'Write project proposal', done: false },
         { id: uuidv4(), title: 'Book dentist appointment', done: true },
         { id: uuidv4(), title: 'Review pull request #42', done: false },
     ],
-    projects: [
+    [S_PROJECTS]: [
         { id: uuidv4(), title: 'Launch SimpleGTD v1', done: false },
         { id: uuidv4(), title: 'Migrate database to Postgres', done: false },
         { id: uuidv4(), title: 'Redesign onboarding flow', done: true },
     ],
-    waiting: [
+    [S_WAITING]: [
         { id: uuidv4(), title: 'Contract signature from client', done: false },
         { id: uuidv4(), title: 'Design assets from Priya', done: false },
     ],
-    someday: [
+    [S_SOMEDAY]: [
         { id: uuidv4(), title: 'Learn Rust', done: false },
         { id: uuidv4(), title: 'Build a keyboard', done: false },
         { id: uuidv4(), title: 'Read Thinking Fast and Slow', done: false },
@@ -81,16 +79,22 @@ function isTask(v: unknown): v is Task {
     )
 }
 
+function isSection(v: unknown): v is Section {
+    return (
+        v !== null &&
+        typeof v === 'object' &&
+        'id' in v &&
+        typeof v.id === 'string' &&
+        'title' in v &&
+        typeof v.title === 'string'
+    )
+}
+
 function isBoardState(v: unknown): v is BoardState {
     if (v === null || typeof v !== 'object') return false
-    if (!('tasksBySection' in v) || !('sectionOrder' in v)) return false
-    const { tasksBySection, sectionOrder } = v
-    if (
-        !Array.isArray(sectionOrder) ||
-        !sectionOrder.every((s) => typeof s === 'string')
-    ) {
-        return false
-    }
+    if (!('sections' in v) || !('tasksBySection' in v)) return false
+    const { sections, tasksBySection } = v
+    if (!Array.isArray(sections) || !sections.every(isSection)) return false
     if (tasksBySection === null || typeof tasksBySection !== 'object') return false
     return Object.values(tasksBySection).every(
         (list) => Array.isArray(list) && list.every(isTask),
@@ -108,8 +112,8 @@ function loadInitialBoard(): BoardState {
         // ignore parse / storage errors
     }
     return {
+        sections: INITIAL_SECTIONS,
         tasksBySection: INITIAL_TASKS_BY_SECTION,
-        sectionOrder: INITIAL_SECTION_ORDER,
     }
 }
 
@@ -230,7 +234,7 @@ function SortableSection({
     onAddTask,
     onAddTaskBelow,
 }: {
-    section: SectionMeta
+    section: Section
     index: number
     tasks: Task[]
     editingId: string | null
@@ -413,33 +417,29 @@ function TaskBoard() {
                     if (source?.type === 'section') {
                         setBoard((prev) => ({
                             ...prev,
-                            sectionOrder: move(prev.sectionOrder, event),
+                            sections: move(prev.sections, event),
                         }))
                     }
                 }}
             >
                 <div className="flex flex-col gap-8">
-                    {board.sectionOrder.map((sectionId, index) => {
-                        const section = SECTION_META[sectionId]
-                        if (!section) return null
-                        return (
-                            <SortableSection
-                                key={sectionId}
-                                section={section}
-                                index={index}
-                                tasks={board.tasksBySection[sectionId] ?? []}
-                                editingId={editingId}
-                                onStartEdit={setEditingId}
-                                onCommitEdit={commitEdit}
-                                onCancelEdit={cancelEdit}
-                                onToggleDone={toggleDone}
-                                onAddTask={() => addTask(sectionId)}
-                                onAddTaskBelow={(taskIndex) =>
-                                    addTask(sectionId, taskIndex)
-                                }
-                            />
-                        )
-                    })}
+                    {board.sections.map((section, index) => (
+                        <SortableSection
+                            key={section.id}
+                            section={section}
+                            index={index}
+                            tasks={board.tasksBySection[section.id] ?? []}
+                            editingId={editingId}
+                            onStartEdit={setEditingId}
+                            onCommitEdit={commitEdit}
+                            onCancelEdit={cancelEdit}
+                            onToggleDone={toggleDone}
+                            onAddTask={() => addTask(section.id)}
+                            onAddTaskBelow={(taskIndex) =>
+                                addTask(section.id, taskIndex)
+                            }
+                        />
+                    ))}
                 </div>
             </DragDropProvider>
         </main>
