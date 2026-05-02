@@ -1,10 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { ComponentProps, KeyboardEvent } from 'react'
 import { GripVerticalIcon, PlusIcon } from 'lucide-react'
-import { DragDropProvider } from '@dnd-kit/react'
-import { useSortable } from '@dnd-kit/react/sortable'
-import { CollisionPriority } from '@dnd-kit/abstract'
-import { move } from '@dnd-kit/helpers'
 import { v4 as uuidv4 } from 'uuid'
 import type { Task, Section, BoardState } from './model'
 import { STORAGE_KEY, loadInitialBoard } from './model'
@@ -34,8 +30,6 @@ function AddButton(props: ComponentProps<'button'>) {
 
 function SortableTask({
     task,
-    index,
-    sectionId,
     isEditing,
     onStartEdit,
     onCommitEdit,
@@ -44,8 +38,6 @@ function SortableTask({
     onAddBelow,
 }: {
     task: Task
-    index: number
-    sectionId: string
     isEditing: boolean
     onStartEdit: () => void
     onCommitEdit: (title: string) => void
@@ -53,15 +45,6 @@ function SortableTask({
     onToggleDone: () => void
     onAddBelow: () => void
 }) {
-    const { ref, handleRef, isDragging } = useSortable({
-        id: task.id,
-
-        index,
-        type: 'task',
-        accept: 'task',
-        group: sectionId,
-    })
-
     function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
         if (e.key === 'Enter') {
             e.currentTarget.blur()
@@ -71,13 +54,9 @@ function SortableTask({
     }
 
     return (
-        <div
-            ref={ref}
-            data-dragging={isDragging}
-            className="group/task relative flex items-center gap-3 rounded bg-page px-4 py-2 data-[dragging=true]:opacity-30"
-        >
+        <div className="group/task relative flex items-center gap-3 rounded bg-page px-4 py-2">
             <div className="absolute top-0 left-0 flex h-full -translate-x-full items-center gap-0.5 pr-1 opacity-0 transition-opacity group-hover/task:opacity-100">
-                <DragHandleButton ref={handleRef} />
+                <DragHandleButton />
                 <AddButton onClick={onAddBelow} />
             </div>
             <input
@@ -116,7 +95,6 @@ function SortableTask({
 
 function SortableSection({
     section,
-    index,
     tasks,
     editingId,
     onStartEdit,
@@ -127,7 +105,6 @@ function SortableSection({
     onAddTaskBelow,
 }: {
     section: Section
-    index: number
     tasks: Task[]
     editingId: string | null
     onStartEdit: (taskId: string) => void
@@ -137,19 +114,11 @@ function SortableSection({
     onAddTask: () => void
     onAddTaskBelow: (taskIndex: number) => void
 }) {
-    const { ref, handleRef } = useSortable({
-        id: section.id,
-        index,
-        type: 'section',
-        accept: ['task', 'section'],
-        collisionPriority: CollisionPriority.Low,
-    })
-
     return (
-        <section ref={ref}>
+        <section>
             <div className="group/section-header relative">
                 <div className="absolute top-0 left-0 flex h-full -translate-x-full items-center gap-0.5 pr-1 opacity-0 transition-opacity group-hover/section-header:opacity-100">
-                    <DragHandleButton ref={handleRef} />
+                    <DragHandleButton />
                     <AddButton onClick={onAddTask} />
                 </div>
                 <div className="flex items-center px-4 py-3">
@@ -163,8 +132,6 @@ function SortableSection({
                     <SortableTask
                         key={task.id}
                         task={task}
-                        index={taskIndex}
-                        sectionId={section.id}
                         isEditing={editingId === task.id}
                         onStartEdit={() => onStartEdit(task.id)}
                         onCommitEdit={(title) => onCommitEdit(task.id, title)}
@@ -196,7 +163,6 @@ function AppHeader() {
 function TaskBoard() {
     const [board, setBoard] = useState<BoardState>(loadInitialBoard)
     const [editingId, setEditingId] = useState<string | null>(null)
-    const previousBoard = useRef(board)
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -288,52 +254,24 @@ function TaskBoard() {
 
     return (
         <main className="mx-auto max-w-2xl px-8 py-10">
-            <DragDropProvider
-                onDragStart={() => {
-                    previousBoard.current = board
-                }}
-                onDragOver={(event) => {
-                    const { source } = event.operation
-                    if (source?.type === 'section') return
-                    setBoard((prev) => ({
-                        ...prev,
-                        tasksBySection: move(prev.tasksBySection, event),
-                    }))
-                }}
-                onDragEnd={(event) => {
-                    const { source } = event.operation
-                    if (event.canceled) {
-                        setBoard(previousBoard.current)
-                        return
-                    }
-                    if (source?.type === 'section') {
-                        setBoard((prev) => ({
-                            ...prev,
-                            sections: move(prev.sections, event),
-                        }))
-                    }
-                }}
-            >
-                <div className="flex flex-col gap-8">
-                    {board.sections.map((section, index) => (
-                        <SortableSection
-                            key={section.id}
-                            section={section}
-                            index={index}
-                            tasks={board.tasksBySection[section.id] ?? []}
-                            editingId={editingId}
-                            onStartEdit={setEditingId}
-                            onCommitEdit={commitEdit}
-                            onCancelEdit={cancelEdit}
-                            onToggleDone={toggleDone}
-                            onAddTask={() => addTask(section.id)}
-                            onAddTaskBelow={(taskIndex) =>
-                                addTask(section.id, taskIndex)
-                            }
-                        />
-                    ))}
-                </div>
-            </DragDropProvider>
+            <div className="flex flex-col gap-8">
+                {board.sections.map((section) => (
+                    <SortableSection
+                        key={section.id}
+                        section={section}
+                        tasks={board.tasksBySection[section.id] ?? []}
+                        editingId={editingId}
+                        onStartEdit={setEditingId}
+                        onCommitEdit={commitEdit}
+                        onCancelEdit={cancelEdit}
+                        onToggleDone={toggleDone}
+                        onAddTask={() => addTask(section.id)}
+                        onAddTaskBelow={(taskIndex) =>
+                            addTask(section.id, taskIndex)
+                        }
+                    />
+                ))}
+            </div>
         </main>
     )
 }
