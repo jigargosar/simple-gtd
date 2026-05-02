@@ -126,3 +126,66 @@ const loadBoardProgram = Effect.try(() => localStorage.getItem(STORAGE_KEY)).pip
 export function loadInitialBoard(): BoardState {
     return Effect.runSync(loadBoardProgram)
 }
+
+export function findSectionId(board: BoardState, taskId: Id): Id | undefined {
+    for (const [sid, list] of Object.entries(board.tasksBySection)) {
+        if (list.some((t) => t.id === taskId)) return sid as Id
+    }
+    return undefined
+}
+
+export function addTask(board: BoardState, sectionId: Id, afterIndex?: number): { board: BoardState; newTaskId: Id } {
+    const newTaskId = makeId()
+    const list = board.tasksBySection[sectionId] ?? []
+    const insertAt = afterIndex === undefined ? list.length : afterIndex + 1
+    const newTask: Task = {
+        id: newTaskId,
+        title: makeTitle(''),
+        done: false,
+        order: orderBetween(list[insertAt - 1]?.order ?? null, list[insertAt]?.order ?? null),
+    }
+    const next = [...list.slice(0, insertAt), newTask, ...list.slice(insertAt)]
+    return {
+        board: { ...board, tasksBySection: { ...board.tasksBySection, [sectionId]: next } },
+        newTaskId,
+    }
+}
+
+export function commitEdit(board: BoardState, taskId: Id, title: string): BoardState {
+    const trimmed = title.trim()
+    const sid = findSectionId(board, taskId)
+    if (sid === undefined) return board
+    const list = board.tasksBySection[sid] ?? []
+    const nextList = trimmed
+        ? list.map((t) => (t.id === taskId ? { ...t, title: makeTitle(trimmed) } : t))
+        : list.filter((t) => t.id !== taskId)
+    return { ...board, tasksBySection: { ...board.tasksBySection, [sid]: nextList } }
+}
+
+export function cancelEdit(board: BoardState, taskId: Id): BoardState {
+    const sid = findSectionId(board, taskId)
+    if (sid === undefined) return board
+    const task = (board.tasksBySection[sid] ?? []).find((t) => t.id === taskId)
+    if (!task || task.title.trim() !== '') return board
+    return {
+        ...board,
+        tasksBySection: {
+            ...board.tasksBySection,
+            [sid]: (board.tasksBySection[sid] ?? []).filter((t) => t.id !== taskId),
+        },
+    }
+}
+
+export function toggleDone(board: BoardState, taskId: Id): BoardState {
+    const sid = findSectionId(board, taskId)
+    if (sid === undefined) return board
+    return {
+        ...board,
+        tasksBySection: {
+            ...board.tasksBySection,
+            [sid]: (board.tasksBySection[sid] ?? []).map((t) =>
+                t.id === taskId ? { ...t, done: !t.done } : t,
+            ),
+        },
+    }
+}

@@ -2,7 +2,14 @@ import { Fragment, useEffect, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { GripVerticalIcon, PlusIcon } from 'lucide-react'
 import type { Task, Section, BoardState, Id } from './model'
-import { STORAGE_KEY, loadInitialBoard, makeId, makeTitle, orderBetween } from './model'
+import {
+    STORAGE_KEY,
+    loadInitialBoard,
+    addTask as modelAddTask,
+    commitEdit as modelCommitEdit,
+    cancelEdit as modelCancelEdit,
+    toggleDone as modelToggleDone,
+} from './model'
 
 function Controls({ onAdd }: { onAdd: () => void }) {
     return (
@@ -145,90 +152,28 @@ function useBoardState() {
         return () => clearTimeout(timer)
     }, [board])
 
-    function findSectionId(taskId: Id): Id | undefined {
-        for (const [sid, list] of Object.entries(board.tasksBySection)) {
-            if (list.some((t) => t.id === taskId)) return sid as Id
-        }
-        return undefined
+    function startEdit(taskId: Id) {
+        setEditingId(taskId)
     }
 
     function addTask(sectionId: Id, afterIndex?: number) {
-        const newId = makeId()
-        setBoard((prev) => {
-            const list = prev.tasksBySection[sectionId] ?? []
-            const insertAt = afterIndex === undefined ? list.length : afterIndex + 1
-            const prev_ = list[insertAt - 1]?.order ?? null
-            const next_ = list[insertAt]?.order ?? null
-            const newTask: Task = {
-                id: newId,
-                title: makeTitle(''),
-                done: false,
-                order: orderBetween(prev_, next_),
-            }
-            const next = [...list.slice(0, insertAt), newTask, ...list.slice(insertAt)]
-            return {
-                ...prev,
-                tasksBySection: { ...prev.tasksBySection, [sectionId]: next },
-            }
-        })
-        setEditingId(newId)
+        const { board: next, newTaskId } = modelAddTask(board, sectionId, afterIndex)
+        setBoard(next)
+        setEditingId(newTaskId)
     }
 
     function commitEdit(taskId: Id, title: string) {
-        const trimmed = title.trim()
-        const sid = findSectionId(taskId)
-        if (sid === undefined) {
-            setEditingId(null)
-            return
-        }
-        setBoard((prev) => {
-            const list = prev.tasksBySection[sid] ?? []
-            const nextList = trimmed
-                ? list.map((t) => (t.id === taskId ? { ...t, title: makeTitle(trimmed) } : t))
-                : list.filter((t) => t.id !== taskId)
-            return {
-                ...prev,
-                tasksBySection: { ...prev.tasksBySection, [sid]: nextList },
-            }
-        })
+        setBoard((prev) => modelCommitEdit(prev, taskId, title))
         setEditingId(null)
     }
 
     function cancelEdit() {
-        if (editingId !== null) {
-            const sid = findSectionId(editingId)
-            const task = sid
-                ? (board.tasksBySection[sid] ?? []).find((t) => t.id === editingId)
-                : undefined
-            if (sid && task && task.title.trim() === '') {
-                setBoard((prev) => ({
-                    ...prev,
-                    tasksBySection: {
-                        ...prev.tasksBySection,
-                        [sid]: (prev.tasksBySection[sid] ?? []).filter((t) => t.id !== editingId),
-                    },
-                }))
-            }
-        }
+        if (editingId !== null) setBoard((prev) => modelCancelEdit(prev, editingId))
         setEditingId(null)
     }
 
     function toggleDone(taskId: Id) {
-        const sid = findSectionId(taskId)
-        if (sid === undefined) return
-        setBoard((prev) => ({
-            ...prev,
-            tasksBySection: {
-                ...prev.tasksBySection,
-                [sid]: (prev.tasksBySection[sid] ?? []).map((t) =>
-                    t.id === taskId ? { ...t, done: !t.done } : t,
-                ),
-            },
-        }))
-    }
-
-    function startEdit(taskId: Id) {
-        setEditingId(taskId)
+        setBoard((prev) => modelToggleDone(prev, taskId))
     }
 
     return { board, editingId, startEdit, addTask, commitEdit, cancelEdit, toggleDone }
