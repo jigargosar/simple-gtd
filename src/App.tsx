@@ -1,10 +1,11 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment } from 'react'
 import type { KeyboardEvent } from 'react'
 import { GripVerticalIcon, PlusIcon } from 'lucide-react'
 import { Board } from './board'
-import type { Board as BoardType, EditingTask } from './board'
+import type { EditingTask } from './board'
 import type { Task as TaskType, TaskId } from './task'
 import type { Section as SectionType, SectionId } from './section'
+import { useBoard } from './useBoard'
 
 function Controls({ onAdd }: { onAdd: () => void }) {
     return (
@@ -28,17 +29,15 @@ function Beacon() {
 
 type TaskViewProps = {
     task: TaskType
-    editing: EditingTask | null
-    onAdd: (afterId: TaskId | null) => void
+    isEditing: boolean
+    onAdd: (afterId: TaskId) => void
     onStartEdit: () => void
     onCommitEdit: (title: string) => void
     onCancelEdit: () => void
     onToggleDone: () => void
 }
 
-function TaskView({ task, editing, onAdd, onStartEdit, onCommitEdit, onCancelEdit, onToggleDone }: TaskViewProps) {
-    const isEditing = editing?.taskId === task.id
-
+function TaskView({ task, isEditing, onAdd, onStartEdit, onCommitEdit, onCancelEdit, onToggleDone }: TaskViewProps) {
     function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
         if (e.key === 'Enter') e.currentTarget.blur()
         else if (e.key === 'Escape') onCancelEdit()
@@ -81,18 +80,16 @@ function TaskView({ task, editing, onAdd, onStartEdit, onCommitEdit, onCancelEdi
 
 type SectionViewProps = {
     section: SectionType
-    board: BoardType
+    tasks: TaskType[]
     editing: EditingTask | null
     onAdd: (sectionId: SectionId, afterId: TaskId | null) => void
     onStartEdit: (sectionId: SectionId, taskId: TaskId) => void
     onCommitEdit: (sectionId: SectionId, taskId: TaskId, title: string) => void
-    onCancelEdit: () => void
+    onCancelEdit: (sectionId: SectionId, taskId: TaskId) => void
     onToggleDone: (sectionId: SectionId, taskId: TaskId) => void
 }
 
-function SectionView({ section, board, editing, onAdd, onStartEdit, onCommitEdit, onCancelEdit, onToggleDone }: SectionViewProps) {
-    const tasks = Board.tasksIn(board, section.id)
-
+function SectionView({ section, tasks, editing, onAdd, onStartEdit, onCommitEdit, onCancelEdit, onToggleDone }: SectionViewProps) {
     return (
         <section>
             <div className="group/section relative">
@@ -111,11 +108,11 @@ function SectionView({ section, board, editing, onAdd, onStartEdit, onCommitEdit
                     <Fragment key={task.id}>
                         <TaskView
                             task={task}
-                            editing={editing}
+                            isEditing={editing?.sectionId === section.id && editing?.taskId === task.id}
                             onAdd={(afterId) => onAdd(section.id, afterId)}
                             onStartEdit={() => onStartEdit(section.id, task.id)}
                             onCommitEdit={(title) => onCommitEdit(section.id, task.id, title)}
-                            onCancelEdit={onCancelEdit}
+                            onCancelEdit={() => onCancelEdit(section.id, task.id)}
                             onToggleDone={() => onToggleDone(section.id, task.id)}
                         />
                         <Beacon />
@@ -138,39 +135,7 @@ function AppHeader() {
 }
 
 export default function App() {
-    const [board, setBoard] = useState<BoardType>(() => Board.load())
-    const [editing, setEditing] = useState<EditingTask | null>(null)
-
-    useEffect(() => {
-        const timer = setTimeout(() => Board.save(board), 100)
-        return () => clearTimeout(timer)
-    }, [board])
-
-    function addTask(sectionId: SectionId, afterId: TaskId | null) {
-        const result = Board.addTask(board, sectionId, afterId)
-        setBoard(result.board)
-        setEditing({ sectionId, taskId: result.newTaskId })
-    }
-
-    function startEdit(sectionId: SectionId, taskId: TaskId) {
-        setEditing({ sectionId, taskId })
-    }
-
-    function commitEdit(sectionId: SectionId, taskId: TaskId, title: string) {
-        setBoard(Board.commitEdit(board, sectionId, taskId, title))
-        setEditing(null)
-    }
-
-    function cancelEdit() {
-        if (editing === null) return
-        const { sectionId, taskId } = editing
-        setBoard(Board.cancelEdit(board, sectionId, taskId))
-        setEditing(null)
-    }
-
-    function toggleDone(sectionId: SectionId, taskId: TaskId) {
-        setBoard(Board.toggleDone(board, sectionId, taskId))
-    }
+    const { board, actions } = useBoard()
 
     return (
         <div className="bg-page text-task min-h-screen">
@@ -180,13 +145,13 @@ export default function App() {
                     <SectionView
                         key={section.id}
                         section={section}
-                        board={board}
-                        editing={editing}
-                        onAdd={addTask}
-                        onStartEdit={startEdit}
-                        onCommitEdit={commitEdit}
-                        onCancelEdit={cancelEdit}
-                        onToggleDone={toggleDone}
+                        tasks={Board.tasksIn(board, section.id)}
+                        editing={board.editing}
+                        onAdd={actions.addTask}
+                        onStartEdit={actions.startEdit}
+                        onCommitEdit={actions.commitEdit}
+                        onCancelEdit={actions.cancelEdit}
+                        onToggleDone={actions.toggleDone}
                     />
                 ))}
             </main>

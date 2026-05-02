@@ -5,12 +5,13 @@ import type { Section as SectionType, SectionId } from './section'
 
 export type TasksBySection = Record<SectionId, TaskType[]>
 
+export type EditingTask = { sectionId: SectionId; taskId: TaskId }
+
 export type Board = {
     readonly sections: readonly SectionType[]
     readonly tasksBySection: TasksBySection
+    readonly editing: EditingTask | null
 }
-
-export type EditingTask = { sectionId: SectionId; taskId: TaskId }
 
 const STORAGE_KEY = 'simple-gtd:v3'
 
@@ -65,7 +66,7 @@ function buildSeedBoard(): Board {
     for (let i = 0; i < sections.length; i++) {
         tasksBySection[sections[i].id] = Task.makeMany(SEED[i].tasks)
     }
-    return { sections, tasksBySection }
+    return { sections, tasksBySection, editing: null }
 }
 
 function load(): Board {
@@ -98,30 +99,29 @@ function updateTasks(board: Board, sectionId: SectionId, tasks: TaskType[]): Boa
     }
 }
 
-function addTask(
-    board: Board,
-    sectionId: SectionId,
-    afterId: TaskId | null,
-): { board: Board; newTaskId: TaskId } {
-    const result = Task.addNew(tasksIn(board, sectionId), afterId)
-    return { board: updateTasks(board, sectionId, result.tasks), newTaskId: result.newTaskId }
+function startEdit(board: Board, sectionId: SectionId, taskId: TaskId): Board {
+    return { ...board, editing: { sectionId, taskId } }
 }
 
-function commitEdit(
-    board: Board,
-    sectionId: SectionId,
-    taskId: TaskId,
-    title: string,
-): Board {
-    return updateTasks(board, sectionId, Task.updateTitle(tasksIn(board, sectionId), taskId, title))
+function addTask(board: Board, sectionId: SectionId, afterId: TaskId | null): Board {
+    const result = Task.addNew(tasksIn(board, sectionId), afterId)
+    return { ...updateTasks(board, sectionId, result.tasks), editing: { sectionId, taskId: result.newTaskId } }
+}
+
+function commitEdit(board: Board, sectionId: SectionId, taskId: TaskId, title: string): Board {
+    return { ...updateTasks(board, sectionId, Task.updateTitle(tasksIn(board, sectionId), taskId, title)), editing: null }
 }
 
 function cancelEdit(board: Board, sectionId: SectionId, taskId: TaskId): Board {
-    return updateTasks(board, sectionId, Task.removeIfBlank(tasksIn(board, sectionId), taskId))
+    return { ...updateTasks(board, sectionId, Task.removeIfBlank(tasksIn(board, sectionId), taskId)), editing: null }
 }
 
 function toggleDone(board: Board, sectionId: SectionId, taskId: TaskId): Board {
     return updateTasks(board, sectionId, Task.toggleDone(tasksIn(board, sectionId), taskId))
 }
 
-export const Board = { load, save, tasksIn, updateTasks, addTask, commitEdit, cancelEdit, toggleDone }
+function isEditing(board: Board, sectionId: SectionId, taskId: TaskId): boolean {
+    return board.editing?.sectionId === sectionId && board.editing?.taskId === taskId
+}
+
+export const Board = { load, save, tasksIn, updateTasks, startEdit, addTask, commitEdit, cancelEdit, toggleDone, isEditing }
