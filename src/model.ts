@@ -1,4 +1,5 @@
 import { Schema, Effect } from 'effect'
+import { useEffect, useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { generateKeyBetween, generateNKeysBetween } from 'fractional-indexing'
 
@@ -134,7 +135,7 @@ export function findSectionId(board: BoardState, taskId: Id): Id | undefined {
     return undefined
 }
 
-export function addTask(board: BoardState, sectionId: Id, afterIndex?: number): { board: BoardState; newTaskId: Id } {
+export function withTaskAdded(board: BoardState, sectionId: Id, afterIndex?: number): { board: BoardState; newTaskId: Id } {
     const newTaskId = makeId()
     const list = board.tasksBySection[sectionId] ?? []
     const insertAt = afterIndex === undefined ? list.length : afterIndex + 1
@@ -151,7 +152,7 @@ export function addTask(board: BoardState, sectionId: Id, afterIndex?: number): 
     }
 }
 
-export function commitEdit(board: BoardState, taskId: Id, title: string): BoardState {
+export function withEditCommitted(board: BoardState, taskId: Id, title: string): BoardState {
     const trimmed = title.trim()
     const sid = findSectionId(board, taskId)
     if (sid === undefined) return board
@@ -162,7 +163,7 @@ export function commitEdit(board: BoardState, taskId: Id, title: string): BoardS
     return { ...board, tasksBySection: { ...board.tasksBySection, [sid]: nextList } }
 }
 
-export function cancelEdit(board: BoardState, taskId: Id): BoardState {
+export function withEditCancelled(board: BoardState, taskId: Id): BoardState {
     const sid = findSectionId(board, taskId)
     if (sid === undefined) return board
     const task = (board.tasksBySection[sid] ?? []).find((t) => t.id === taskId)
@@ -176,7 +177,7 @@ export function cancelEdit(board: BoardState, taskId: Id): BoardState {
     }
 }
 
-export function toggleDone(board: BoardState, taskId: Id): BoardState {
+export function withDoneToggled(board: BoardState, taskId: Id): BoardState {
     const sid = findSectionId(board, taskId)
     if (sid === undefined) return board
     return {
@@ -188,4 +189,46 @@ export function toggleDone(board: BoardState, taskId: Id): BoardState {
             ),
         },
     }
+}
+
+export function useBoardState() {
+    const [board, setBoard] = useState<BoardState>(loadInitialBoard)
+    const [editingId, setEditingId] = useState<Id | null>(null)
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(board))
+            } catch {
+                // ignore quota / privacy mode errors
+            }
+        }, 100)
+        return () => clearTimeout(timer)
+    }, [board])
+
+    function startEdit(taskId: Id) {
+        setEditingId(taskId)
+    }
+
+    function addTask(sectionId: Id, afterIndex?: number) {
+        const { board: next, newTaskId } = withTaskAdded(board, sectionId, afterIndex)
+        setBoard(next)
+        setEditingId(newTaskId)
+    }
+
+    function commitEdit(taskId: Id, title: string) {
+        setBoard((prev) => withEditCommitted(prev, taskId, title))
+        setEditingId(null)
+    }
+
+    function cancelEdit() {
+        if (editingId !== null) setBoard((prev) => withEditCancelled(prev, editingId))
+        setEditingId(null)
+    }
+
+    function toggleDone(taskId: Id) {
+        setBoard((prev) => withDoneToggled(prev, taskId))
+    }
+
+    return { board, editingId, startEdit, addTask, commitEdit, cancelEdit, toggleDone }
 }

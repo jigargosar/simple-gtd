@@ -1,15 +1,8 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment } from 'react'
 import type { KeyboardEvent } from 'react'
 import { GripVerticalIcon, PlusIcon } from 'lucide-react'
-import type { Task, Section, BoardState, Id } from './model'
-import {
-    STORAGE_KEY,
-    loadInitialBoard,
-    addTask as modelAddTask,
-    commitEdit as modelCommitEdit,
-    cancelEdit as modelCancelEdit,
-    toggleDone as modelToggleDone,
-} from './model'
+import type { Task, Section, Id } from './model'
+import { useBoardState } from './model'
 
 function Controls({ onAdd }: { onAdd: () => void }) {
     return (
@@ -137,47 +130,6 @@ function SectionView({
     )
 }
 
-function useBoardState() {
-    const [board, setBoard] = useState<BoardState>(loadInitialBoard)
-    const [editingId, setEditingId] = useState<Id | null>(null)
-
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(board))
-            } catch {
-                // ignore quota / privacy mode errors
-            }
-        }, 100)
-        return () => clearTimeout(timer)
-    }, [board])
-
-    function startEdit(taskId: Id) {
-        setEditingId(taskId)
-    }
-
-    function addTask(sectionId: Id, afterIndex?: number) {
-        const { board: next, newTaskId } = modelAddTask(board, sectionId, afterIndex)
-        setBoard(next)
-        setEditingId(newTaskId)
-    }
-
-    function commitEdit(taskId: Id, title: string) {
-        setBoard((prev) => modelCommitEdit(prev, taskId, title))
-        setEditingId(null)
-    }
-
-    function cancelEdit() {
-        if (editingId !== null) setBoard((prev) => modelCancelEdit(prev, editingId))
-        setEditingId(null)
-    }
-
-    function toggleDone(taskId: Id) {
-        setBoard((prev) => modelToggleDone(prev, taskId))
-    }
-
-    return { board, editingId, startEdit, addTask, commitEdit, cancelEdit, toggleDone }
-}
 
 function BoardView() {
     const { board, editingId, startEdit, addTask, commitEdit, cancelEdit, toggleDone } = useBoardState()
