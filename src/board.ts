@@ -84,16 +84,11 @@ function save(board: Board): void {
 }
 
 function tasksIn(board: Board, sectionId: SectionId): TaskType[] {
-    return board.tasks
-        .filter((t) => t.sectionId === sectionId)
-        .sort((a, b) => (a.order < b.order ? -1 : 1))
+    return Task.forSection(board.tasks, sectionId)
 }
 
-function replaceTasks(board: Board, sectionId: SectionId, updated: TaskType[]): Board {
-    return {
-        ...board,
-        tasks: [...board.tasks.filter((t) => t.sectionId !== sectionId), ...updated],
-    }
+function withTasks(board: Board, sectionId: SectionId, updated: TaskType[]): Board {
+    return { ...board, tasks: Task.replaceForSection(board.tasks, sectionId, updated) }
 }
 
 function startEdit(board: Board, sectionId: SectionId, taskId: TaskId): Board {
@@ -102,19 +97,19 @@ function startEdit(board: Board, sectionId: SectionId, taskId: TaskId): Board {
 
 function addTask(board: Board, sectionId: SectionId, afterId: TaskId | null): Board {
     const result = Task.addNew(tasksIn(board, sectionId), sectionId, afterId)
-    return { ...replaceTasks(board, sectionId, result.tasks), editing: { sectionId, taskId: result.newTaskId } }
+    return { ...withTasks(board, sectionId, result.tasks), editing: { sectionId, taskId: result.newTaskId } }
 }
 
 function commitEdit(board: Board, sectionId: SectionId, taskId: TaskId, title: string): Board {
-    return { ...replaceTasks(board, sectionId, Task.updateTitle(tasksIn(board, sectionId), taskId, title)), editing: null }
+    return { ...withTasks(board, sectionId, Task.updateTitle(tasksIn(board, sectionId), taskId, title)), editing: null }
 }
 
 function cancelEdit(board: Board, sectionId: SectionId, taskId: TaskId): Board {
-    return { ...replaceTasks(board, sectionId, Task.removeIfBlank(tasksIn(board, sectionId), taskId)), editing: null }
+    return { ...withTasks(board, sectionId, Task.removeIfBlank(tasksIn(board, sectionId), taskId)), editing: null }
 }
 
 function toggleDone(board: Board, sectionId: SectionId, taskId: TaskId): Board {
-    return replaceTasks(board, sectionId, Task.toggleDone(tasksIn(board, sectionId), taskId))
+    return withTasks(board, sectionId, Task.toggleDone(tasksIn(board, sectionId), taskId))
 }
 
 export const Board = { load, save, tasksIn, startEdit, addTask, commitEdit, cancelEdit, toggleDone }

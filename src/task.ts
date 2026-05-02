@@ -56,4 +56,14 @@ function toggleDone(list: readonly Task[], taskId: TaskId): Task[] {
     return list.map((t) => (t.id === taskId ? { ...t, done: !t.done } : t))
 }
 
-export const Task = { makeMany, addNew, updateTitle, removeIfBlank, toggleDone }
+function forSection(tasks: readonly Task[], sectionId: SectionId): Task[] {
+    return tasks
+        .filter((t) => t.sectionId === sectionId)
+        .sort((a, b) => (a.order < b.order ? -1 : 1))
+}
+
+function replaceForSection(tasks: readonly Task[], sectionId: SectionId, updated: Task[]): Task[] {
+    return [...tasks.filter((t) => t.sectionId !== sectionId), ...updated]
+}
+
+export const Task = { makeMany, addNew, updateTitle, removeIfBlank, toggleDone, forSection, replaceForSection }
