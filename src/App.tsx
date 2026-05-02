@@ -1,15 +1,14 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import type { ComponentProps, KeyboardEvent } from 'react'
 import { GripVerticalIcon, PlusIcon } from 'lucide-react'
 import type { Task, Section, BoardState, Id } from './model'
 import { STORAGE_KEY, loadInitialBoard, makeId, makeTitle, orderBetween } from './model'
 
-
 function DragHandleButton(props: ComponentProps<'button'>) {
     return (
         <button
             {...props}
-            className="touch-none rounded p-2 text-label-muted transition-colors hover:text-label"
+            className="text-label-muted hover:text-label touch-none rounded p-2 transition-colors"
         >
             <GripVerticalIcon size={20} />
         </button>
@@ -20,7 +19,7 @@ function AddButton(props: ComponentProps<'button'>) {
     return (
         <button
             {...props}
-            className="rounded p-2 text-label-muted transition-colors hover:text-blue"
+            className="text-label-muted hover:text-blue rounded p-2 transition-colors"
         >
             <PlusIcon size={20} />
         </button>
@@ -53,7 +52,7 @@ function SortableTask({
     }
 
     return (
-        <div className="group/task relative flex items-center gap-3 rounded bg-page px-4 py-2">
+        <div className="group/task bg-page relative flex items-center gap-3 rounded px-4 py-2">
             <div className="absolute top-0 left-0 flex h-full -translate-x-full items-center gap-0.5 pr-1 opacity-0 transition-opacity group-hover/task:opacity-100">
                 <DragHandleButton />
                 <AddButton onClick={onAddBelow} />
@@ -62,7 +61,7 @@ function SortableTask({
                 type="checkbox"
                 checked={task.done}
                 onChange={onToggleDone}
-                className="h-4 w-4 cursor-pointer accent-blue"
+                className="accent-blue h-4 w-4 cursor-pointer"
             />
             {isEditing ? (
                 <input
@@ -70,15 +69,13 @@ function SortableTask({
                     defaultValue={task.title}
                     onBlur={(e) => onCommitEdit(e.currentTarget.value)}
                     onKeyDown={handleKeyDown}
-                    className="flex-1 bg-transparent text-sm leading-relaxed tracking-wide text-task outline-none"
+                    className="text-task flex-1 bg-transparent text-sm leading-relaxed tracking-wide outline-none"
                 />
             ) : (
                 <span
                     onClick={onStartEdit}
                     className={`flex-1 cursor-text text-sm leading-relaxed tracking-wide ${
-                        task.done
-                            ? 'text-task-muted line-through'
-                            : 'text-task'
+                        task.done ? 'text-task-muted line-through' : 'text-task'
                     }`}
                 >
                     {task.title || (
@@ -121,37 +118,42 @@ function SortableSection({
                     <AddButton onClick={onAddTask} />
                 </div>
                 <div className="flex items-center px-4 py-3">
-                    <h2 className="text-xs font-semibold tracking-[0.2em] text-blue uppercase">
+                    <h2 className="text-blue text-xs font-semibold tracking-[0.2em] uppercase">
                         {section.title}
                     </h2>
                 </div>
             </div>
             <div className="flex min-h-2 flex-col">
+                <Beacon />
                 {tasks.map((task, taskIndex) => (
-                    <SortableTask
-                        key={task.id}
-                        task={task}
-                        isEditing={editingId === task.id}
-                        onStartEdit={() => onStartEdit(task.id)}
-                        onCommitEdit={(title) => onCommitEdit(task.id, title)}
-                        onCancelEdit={onCancelEdit}
-                        onToggleDone={() => onToggleDone(task.id)}
-                        onAddBelow={() => onAddTaskBelow(taskIndex)}
-                    />
+                    <Fragment key={task.id}>
+                        <SortableTask
+                            task={task}
+                            isEditing={editingId === task.id}
+                            onStartEdit={() => onStartEdit(task.id)}
+                            onCommitEdit={(title) => onCommitEdit(task.id, title)}
+                            onCancelEdit={onCancelEdit}
+                            onToggleDone={() => onToggleDone(task.id)}
+                            onAddBelow={() => onAddTaskBelow(taskIndex)}
+                        />
+                        <Beacon />
+                    </Fragment>
                 ))}
             </div>
         </section>
     )
 }
 
+function Beacon() {
+    return <div style={{ height: 1, backgroundColor: 'dodgerblue' }} />
+}
+
 function AppHeader() {
     return (
         <header className="px-8 py-5">
             <div className="mx-auto flex max-w-2xl items-baseline gap-3">
-                <h1 className="text-2xl font-semibold text-title">
-                    SimpleGTD
-                </h1>
-                <span className="text-xs tracking-widest text-blue uppercase">
+                <h1 className="text-title text-2xl font-semibold">SimpleGTD</h1>
+                <span className="text-blue text-xs tracking-widest uppercase">
                     Getting Things Done
                 </span>
             </div>
@@ -188,12 +190,13 @@ function TaskBoard() {
             const insertAt = afterIndex === undefined ? list.length : afterIndex + 1
             const prev_ = list[insertAt - 1]?.order ?? null
             const next_ = list[insertAt]?.order ?? null
-            const newTask: Task = { id: newId, title: makeTitle(''), done: false, order: orderBetween(prev_, next_) }
-            const next = [
-                ...list.slice(0, insertAt),
-                newTask,
-                ...list.slice(insertAt),
-            ]
+            const newTask: Task = {
+                id: newId,
+                title: makeTitle(''),
+                done: false,
+                order: orderBetween(prev_, next_),
+            }
+            const next = [...list.slice(0, insertAt), newTask, ...list.slice(insertAt)]
             return {
                 ...prev,
                 tasksBySection: { ...prev.tasksBySection, [sectionId]: next },
@@ -212,7 +215,9 @@ function TaskBoard() {
         setBoard((prev) => {
             const list = prev.tasksBySection[sid] ?? []
             const nextList = trimmed
-                ? list.map((t) => (t.id === taskId ? { ...t, title: makeTitle(trimmed) } : t))
+                ? list.map((t) =>
+                      t.id === taskId ? { ...t, title: makeTitle(trimmed) } : t,
+                  )
                 : list.filter((t) => t.id !== taskId)
             return {
                 ...prev,
@@ -271,9 +276,7 @@ function TaskBoard() {
                         onCancelEdit={cancelEdit}
                         onToggleDone={toggleDone}
                         onAddTask={() => addTask(section.id)}
-                        onAddTaskBelow={(taskIndex) =>
-                            addTask(section.id, taskIndex)
-                        }
+                        onAddTaskBelow={(taskIndex) => addTask(section.id, taskIndex)}
                     />
                 ))}
             </div>
@@ -283,7 +286,7 @@ function TaskBoard() {
 
 export default function App() {
     return (
-        <div className="min-h-screen bg-page text-task">
+        <div className="bg-page text-task min-h-screen">
             <AppHeader />
             <TaskBoard />
         </div>
