@@ -66,4 +66,18 @@ function replaceForSection(tasks: readonly Task[], sectionId: SectionId, updated
     return [...tasks.filter((t) => t.sectionId !== sectionId), ...updated]
 }
 
-export const Task = { makeMany, addNew, updateTitle, removeIfBlank, toggleDone, forSection, replaceForSection }
+function move(
+    tasks: readonly Task[],
+    taskId: TaskId,
+    targetSectionId: SectionId,
+    beforeId: TaskId | null,
+    afterId: TaskId | null,
+): Task[] {
+    const targetTasks = forSection(tasks, targetSectionId).filter((t) => t.id !== taskId)
+    const beforeOrder = beforeId !== null ? (targetTasks.find((t) => t.id === beforeId)?.order ?? null) : null
+    const afterOrder = afterId !== null ? (targetTasks.find((t) => t.id === afterId)?.order ?? null) : null
+    const order = generateKeyBetween(beforeOrder, afterOrder)
+    return tasks.map((t) => (t.id === taskId ? { ...t, sectionId: targetSectionId, order } : t))
+}
+
+export const Task = { makeMany, addNew, updateTitle, removeIfBlank, toggleDone, forSection, replaceForSection, move }

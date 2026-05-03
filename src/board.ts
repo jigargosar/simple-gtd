@@ -2,6 +2,7 @@ import { Task } from './task'
 import { Section } from './section'
 import type { Task as TaskType, TaskId } from './task'
 import type { Section as SectionType, SectionId } from './section'
+import type { DropResult } from './useDrag'
 
 export type EditingTask = { tag: 'task'; sectionId: SectionId; taskId: TaskId }
 export type EditingSection = { tag: 'section'; sectionId: SectionId }
@@ -130,6 +131,10 @@ function cancelEditSection(board: Board, sectionId: SectionId): Board {
     return { ...board, sections: Section.removeIfBlank(board.sections, sectionId), editing: null }
 }
 
+function moveTask(board: Board, drop: DropResult): Board {
+    return { ...board, tasks: Task.move(board.tasks, drop.taskId, drop.targetSectionId, drop.beforeId, drop.afterId) }
+}
+
 function isEditingTask(board: Board, sectionId: SectionId, taskId: TaskId): boolean {
     return board.editing?.tag === 'task' && board.editing.sectionId === sectionId && board.editing.taskId === taskId
 }
@@ -140,7 +145,7 @@ function isEditingSection(board: Board, sectionId: SectionId): boolean {
 
 export const Board = {
     load, save, tasksIn,
-    startEditTask, addTask, commitEditTask, cancelEditTask, toggleDone,
+    startEditTask, addTask, commitEditTask, cancelEditTask, toggleDone, moveTask,
     startEditSection, commitEditSection, cancelEditSection,
     isEditingTask, isEditingSection,
 }
