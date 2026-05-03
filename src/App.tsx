@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import type { KeyboardEvent } from 'react'
 import { GripVerticalIcon, PlusIcon } from 'lucide-react'
 import { Board } from './board'
@@ -22,8 +22,59 @@ function Controls({ onAddTask }: { onAddTask: () => void }) {
     )
 }
 
-function Beacon() {
-    return <div style={{ height: 1, backgroundColor: 'dodgerblue' }} />
+function useActiveBeacon(): string | null {
+    const [activeId, setActiveId] = useState<string | null>(null)
+
+    useEffect(() => {
+        function onMouseMove(e: MouseEvent) {
+            const beacons = document.querySelectorAll<HTMLElement>('[data-beacon]')
+            if (beacons.length === 0) return
+
+            let nearestId: string | null = null
+            let minDist = Infinity
+
+            beacons.forEach((el) => {
+                const rect = el.getBoundingClientRect()
+                const centerY = rect.top + rect.height / 2
+                const dist = Math.abs(e.clientY - centerY)
+                if (dist < minDist) {
+                    minDist = dist
+                    nearestId = el.dataset.beacon ?? null
+                }
+            })
+
+            setActiveId((prev) => (prev === nearestId ? prev : nearestId))
+        }
+
+        window.addEventListener('mousemove', onMouseMove)
+        return () => window.removeEventListener('mousemove', onMouseMove)
+    }, [])
+
+    return activeId
+}
+
+function Beacon({ id, active }: { id: string; active: boolean }) {
+    return (
+        <div data-beacon={id} style={{ position: 'relative', height: 8, display: 'flex', alignItems: 'center' }}>
+            <div style={{
+                position: 'absolute', left: 8, right: 8, height: 2,
+                background: 'dodgerblue', borderRadius: 1,
+                opacity: active ? 1 : 0, transition: 'opacity 80ms ease',
+            }} />
+            <div style={{
+                position: 'absolute', left: 2, width: 8, height: 8,
+                borderRadius: '50%', background: 'dodgerblue',
+                top: '50%', transform: 'translateY(-50%)',
+                opacity: active ? 1 : 0, transition: 'opacity 80ms ease',
+            }} />
+            <div style={{
+                position: 'absolute', right: 2, width: 8, height: 8,
+                borderRadius: '50%', background: 'dodgerblue',
+                top: '50%', transform: 'translateY(-50%)',
+                opacity: active ? 1 : 0, transition: 'opacity 80ms ease',
+            }} />
+        </div>
+    )
 }
 
 type TaskActions = {
@@ -93,11 +144,12 @@ type SectionViewProps = {
     tasks: TaskType[]
     isSectionEditing: boolean
     isTaskEditing: (taskId: TaskId) => boolean
+    activeBeaconId: string | null
     sectionActions: SectionActions
     taskActions: (taskId: TaskId) => TaskActions
 }
 
-function SectionView({ section, tasks, isSectionEditing, isTaskEditing, sectionActions, taskActions }: SectionViewProps) {
+function SectionView({ section, tasks, isSectionEditing, isTaskEditing, activeBeaconId, sectionActions, taskActions }: SectionViewProps) {
     function handleSectionKeyDown(e: KeyboardEvent<HTMLInputElement>) {
         if (e.key === 'Enter') e.currentTarget.blur()
         else if (e.key === 'Escape') sectionActions.cancelEdit()
@@ -131,15 +183,15 @@ function SectionView({ section, tasks, isSectionEditing, isTaskEditing, sectionA
                 </div>
             </div>
             <div className="flex min-h-2 flex-col">
-                <Beacon />
-                {tasks.map((task) => (
+                <Beacon id={`${section.id}:0`} active={activeBeaconId === `${section.id}:0`} />
+                {tasks.map((task, i) => (
                     <Fragment key={task.id}>
                         <TaskView
                             task={task}
                             isEditing={isTaskEditing(task.id)}
                             actions={taskActions(task.id)}
                         />
-                        <Beacon />
+                        <Beacon id={`${section.id}:${i + 1}`} active={activeBeaconId === `${section.id}:${i + 1}`} />
                     </Fragment>
                 ))}
             </div>
@@ -160,6 +212,7 @@ function AppHeader() {
 
 export default function App() {
     const { board, actions } = useBoard()
+    const activeBeaconId = useActiveBeacon()
 
     return (
         <div className="bg-page text-task min-h-screen">
@@ -172,6 +225,7 @@ export default function App() {
                         tasks={Board.tasksIn(board, section.id)}
                         isSectionEditing={Board.isEditingSection(board, section.id)}
                         isTaskEditing={(taskId) => Board.isEditingTask(board, section.id, taskId)}
+                        activeBeaconId={activeBeaconId}
                         sectionActions={{
                             addTask: (afterId) => actions.addTask(section.id, afterId),
                             startEdit: () => actions.startEditSection(section.id),
