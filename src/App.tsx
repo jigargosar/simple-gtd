@@ -3,17 +3,17 @@ import type { KeyboardEvent } from 'react'
 import { GripVerticalIcon, PlusIcon } from 'lucide-react'
 import { Board } from './board'
 import type { Task as TaskType, TaskId } from './task'
-import type { Section as SectionType, SectionId } from './section'
+import type { Section as SectionType } from './section'
 import { useBoard } from './useBoard'
 
-function Controls({ onAdd }: { onAdd: () => void }) {
+function Controls({ onAddTask }: { onAddTask: () => void }) {
     return (
         <div className="absolute top-0 left-0 flex h-full -translate-x-full items-center gap-0.5 pr-1">
             <button className="text-label-muted hover:text-label touch-none rounded p-2 transition-colors">
                 <GripVerticalIcon size={20} />
             </button>
             <button
-                onClick={onAdd}
+                onClick={onAddTask}
                 className="text-label-muted hover:text-blue rounded p-2 transition-colors"
             >
                 <PlusIcon size={20} />
@@ -26,44 +26,48 @@ function Beacon() {
     return <div style={{ height: 1, backgroundColor: 'dodgerblue' }} />
 }
 
+type TaskActions = {
+    add: (afterId: TaskId) => void
+    startEdit: () => void
+    commitEdit: (title: string) => void
+    cancelEdit: () => void
+    toggleDone: () => void
+}
+
 type TaskViewProps = {
     task: TaskType
     isEditing: boolean
-    onAdd: (afterId: TaskId) => void
-    onStartEdit: () => void
-    onCommitEdit: (title: string) => void
-    onCancelEdit: () => void
-    onToggleDone: () => void
+    actions: TaskActions
 }
 
-function TaskView({ task, isEditing, onAdd, onStartEdit, onCommitEdit, onCancelEdit, onToggleDone }: TaskViewProps) {
+function TaskView({ task, isEditing, actions }: TaskViewProps) {
     function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
         if (e.key === 'Enter') e.currentTarget.blur()
-        else if (e.key === 'Escape') onCancelEdit()
+        else if (e.key === 'Escape') actions.cancelEdit()
     }
 
     return (
         <div className="group/task bg-page relative flex items-center gap-3 rounded px-4 py-2">
             <div className="opacity-0 transition-opacity group-hover/task:opacity-100">
-                <Controls onAdd={() => onAdd(task.id)} />
+                <Controls onAddTask={() => actions.add(task.id)} />
             </div>
             <input
                 type="checkbox"
                 checked={task.done}
-                onChange={onToggleDone}
+                onChange={actions.toggleDone}
                 className="accent-blue h-4 w-4 cursor-pointer"
             />
             {isEditing ? (
                 <input
                     autoFocus
                     defaultValue={task.title}
-                    onBlur={(e) => onCommitEdit(e.currentTarget.value)}
+                    onBlur={(e) => actions.commitEdit(e.currentTarget.value)}
                     onKeyDown={handleKeyDown}
                     className="text-task flex-1 bg-transparent text-sm leading-relaxed tracking-wide outline-none"
                 />
             ) : (
                 <span
-                    onClick={onStartEdit}
+                    onClick={actions.startEdit}
                     className={`flex-1 cursor-text text-sm leading-relaxed tracking-wide ${
                         task.done ? 'text-task-muted line-through' : 'text-task'
                     }`}
@@ -77,52 +81,46 @@ function TaskView({ task, isEditing, onAdd, onStartEdit, onCommitEdit, onCancelE
     )
 }
 
+type SectionActions = {
+    addTask: (afterId: TaskId | null) => void
+    startEdit: () => void
+    commitEdit: (title: string) => void
+    cancelEdit: () => void
+}
+
 type SectionViewProps = {
     section: SectionType
     tasks: TaskType[]
     isSectionEditing: boolean
     isTaskEditing: (taskId: TaskId) => boolean
-    onAdd: (sectionId: SectionId, afterId: TaskId | null) => void
-    onStartEditSection: (sectionId: SectionId) => void
-    onCommitEditSection: (sectionId: SectionId, title: string) => void
-    onCancelEditSection: (sectionId: SectionId) => void
-    onStartEditTask: (sectionId: SectionId, taskId: TaskId) => void
-    onCommitEditTask: (sectionId: SectionId, taskId: TaskId, title: string) => void
-    onCancelEditTask: (sectionId: SectionId, taskId: TaskId) => void
-    onToggleDone: (sectionId: SectionId, taskId: TaskId) => void
+    sectionActions: SectionActions
+    taskActions: (taskId: TaskId) => TaskActions
 }
 
-function SectionView({
-    section, tasks, isSectionEditing, isTaskEditing,
-    onAdd,
-    onStartEditSection, onCommitEditSection, onCancelEditSection,
-    onStartEditTask, onCommitEditTask, onCancelEditTask,
-    onToggleDone,
-}: SectionViewProps) {
-
+function SectionView({ section, tasks, isSectionEditing, isTaskEditing, sectionActions, taskActions }: SectionViewProps) {
     function handleSectionKeyDown(e: KeyboardEvent<HTMLInputElement>) {
         if (e.key === 'Enter') e.currentTarget.blur()
-        else if (e.key === 'Escape') onCancelEditSection(section.id)
+        else if (e.key === 'Escape') sectionActions.cancelEdit()
     }
 
     return (
         <section>
             <div className="group/section relative">
                 <div className="opacity-0 transition-opacity group-hover/section:opacity-100">
-                    <Controls onAdd={() => onAdd(section.id, null)} />
+                    <Controls onAddTask={() => sectionActions.addTask(null)} />
                 </div>
                 <div className="flex items-center px-4 py-3">
                     {isSectionEditing ? (
                         <input
                             autoFocus
                             defaultValue={section.title}
-                            onBlur={(e) => onCommitEditSection(section.id, e.currentTarget.value)}
+                            onBlur={(e) => sectionActions.commitEdit(e.currentTarget.value)}
                             onKeyDown={handleSectionKeyDown}
                             className="text-blue w-full bg-transparent text-xs font-semibold tracking-[0.2em] uppercase outline-none"
                         />
                     ) : (
                         <h2
-                            onClick={() => onStartEditSection(section.id)}
+                            onClick={sectionActions.startEdit}
                             className="text-blue cursor-text text-xs font-semibold tracking-[0.2em] uppercase"
                         >
                             {section.title || (
@@ -139,11 +137,7 @@ function SectionView({
                         <TaskView
                             task={task}
                             isEditing={isTaskEditing(task.id)}
-                            onAdd={(afterId) => onAdd(section.id, afterId)}
-                            onStartEdit={() => onStartEditTask(section.id, task.id)}
-                            onCommitEdit={(title) => onCommitEditTask(section.id, task.id, title)}
-                            onCancelEdit={() => onCancelEditTask(section.id, task.id)}
-                            onToggleDone={() => onToggleDone(section.id, task.id)}
+                            actions={taskActions(task.id)}
                         />
                         <Beacon />
                     </Fragment>
@@ -178,14 +172,19 @@ export default function App() {
                         tasks={Board.tasksIn(board, section.id)}
                         isSectionEditing={Board.isEditingSection(board, section.id)}
                         isTaskEditing={(taskId) => Board.isEditingTask(board, section.id, taskId)}
-                        onAdd={actions.addTask}
-                        onStartEditSection={actions.startEditSection}
-                        onCommitEditSection={actions.commitEditSection}
-                        onCancelEditSection={actions.cancelEditSection}
-                        onStartEditTask={actions.startEditTask}
-                        onCommitEditTask={actions.commitEditTask}
-                        onCancelEditTask={actions.cancelEditTask}
-                        onToggleDone={actions.toggleDone}
+                        sectionActions={{
+                            addTask: (afterId) => actions.addTask(section.id, afterId),
+                            startEdit: () => actions.startEditSection(section.id),
+                            commitEdit: (title) => actions.commitEditSection(section.id, title),
+                            cancelEdit: () => actions.cancelEditSection(section.id),
+                        }}
+                        taskActions={(taskId) => ({
+                            add: (afterId) => actions.addTask(section.id, afterId),
+                            startEdit: () => actions.startEditTask(section.id, taskId),
+                            commitEdit: (title) => actions.commitEditTask(section.id, taskId, title),
+                            cancelEdit: () => actions.cancelEditTask(section.id, taskId),
+                            toggleDone: () => actions.toggleDone(section.id, taskId),
+                        })}
                     />
                 ))}
             </main>
