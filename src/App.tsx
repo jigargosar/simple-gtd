@@ -2,7 +2,6 @@ import { Fragment } from 'react'
 import type { KeyboardEvent } from 'react'
 import { GripVerticalIcon, PlusIcon } from 'lucide-react'
 import { Board } from './board'
-import type { Editing } from './board'
 import type { Task as TaskType, TaskId } from './task'
 import type { Section as SectionType, SectionId } from './section'
 import { useBoard } from './useBoard'
@@ -81,7 +80,8 @@ function TaskView({ task, isEditing, onAdd, onStartEdit, onCommitEdit, onCancelE
 type SectionViewProps = {
     section: SectionType
     tasks: TaskType[]
-    editing: Editing | null
+    isSectionEditing: boolean
+    isTaskEditing: (taskId: TaskId) => boolean
     onAdd: (sectionId: SectionId, afterId: TaskId | null) => void
     onStartEditSection: (sectionId: SectionId) => void
     onCommitEditSection: (sectionId: SectionId, title: string) => void
@@ -93,13 +93,12 @@ type SectionViewProps = {
 }
 
 function SectionView({
-    section, tasks, editing,
+    section, tasks, isSectionEditing, isTaskEditing,
     onAdd,
     onStartEditSection, onCommitEditSection, onCancelEditSection,
     onStartEditTask, onCommitEditTask, onCancelEditTask,
     onToggleDone,
 }: SectionViewProps) {
-    const isSectionEditing = editing?.tag === 'section' && editing.sectionId === section.id
 
     function handleSectionKeyDown(e: KeyboardEvent<HTMLInputElement>) {
         if (e.key === 'Enter') e.currentTarget.blur()
@@ -139,7 +138,7 @@ function SectionView({
                     <Fragment key={task.id}>
                         <TaskView
                             task={task}
-                            isEditing={editing?.tag === 'task' && editing.sectionId === section.id && editing.taskId === task.id}
+                            isEditing={isTaskEditing(task.id)}
                             onAdd={(afterId) => onAdd(section.id, afterId)}
                             onStartEdit={() => onStartEditTask(section.id, task.id)}
                             onCommitEdit={(title) => onCommitEditTask(section.id, task.id, title)}
@@ -177,7 +176,8 @@ export default function App() {
                         key={section.id}
                         section={section}
                         tasks={Board.tasksIn(board, section.id)}
-                        editing={board.editing}
+                        isSectionEditing={Board.isEditingSection(board, section.id)}
+                        isTaskEditing={(taskId) => Board.isEditingTask(board, section.id, taskId)}
                         onAdd={actions.addTask}
                         onStartEditSection={actions.startEditSection}
                         onCommitEditSection={actions.commitEditSection}

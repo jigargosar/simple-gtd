@@ -130,8 +130,17 @@ function cancelEditSection(board: Board, sectionId: SectionId): Board {
     return { ...board, sections: Section.removeIfBlank(board.sections, sectionId), editing: null }
 }
 
+function isEditingTask(board: Board, sectionId: SectionId, taskId: TaskId): boolean {
+    return board.editing?.tag === 'task' && board.editing.sectionId === sectionId && board.editing.taskId === taskId
+}
+
+function isEditingSection(board: Board, sectionId: SectionId): boolean {
+    return board.editing?.tag === 'section' && board.editing.sectionId === sectionId
+}
+
 export const Board = {
     load, save, tasksIn,
     startEditTask, addTask, commitEditTask, cancelEditTask, toggleDone,
     startEditSection, commitEditSection, cancelEditSection,
+    isEditingTask, isEditingSection,
 }
