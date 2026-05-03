@@ -1,6 +1,6 @@
 import type { TaskId } from './task'
 import type { SectionId } from './section'
-import { useDragStore } from './dragStore'
+import { useDragStore, isActiveBeacon } from './dragStore'
 
 function optionalAttr(name: string, value: string | null): Record<string, string> {
     return value !== null ? { [name]: value } : {}
@@ -25,9 +25,7 @@ export function Beacon({
     beforeId: TaskId | null
     afterId: TaskId | null
 }) {
-    const active = useDragStore(
-        (s) => s.drag !== null && s.drag.activeBeacon?.beaconId === id,
-    )
+    const active = useDragStore((s) => isActiveBeacon(s, id))
 
     const visibility = active ? 'opacity-100' : 'opacity-0'
 

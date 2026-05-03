@@ -14,6 +14,10 @@ type DragStoreActions = {
 
 type DragStore = DragStoreState & DragStoreActions
 
+export function isActiveBeacon(s: DragStoreState, beaconId: string): boolean {
+    return s.drag !== null && s.drag.activeBeacon?.beaconId === beaconId
+}
+
 export const useDragStore = create<DragStore>()(
     devtools(
         (set) => ({
