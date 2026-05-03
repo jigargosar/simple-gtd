@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { devtools } from 'zustand/middleware'
 import type { DragState } from './useDrag'
 
 type DragStore = {
@@ -6,7 +7,7 @@ type DragStore = {
     setDrag: (drag: DragState | null) => void
 }
 
-export const useDragStore = create<DragStore>((set) => ({
+export const useDragStore = create<DragStore>()(devtools((set) => ({
     drag: null,
     setDrag: (drag) => set({ drag }),
-}))
+}), { name: 'drag' }))

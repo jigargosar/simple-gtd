@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { devtools } from 'zustand/middleware'
 import { Board } from './board'
 import type { Board as BoardType } from './board'
 import type { SectionId } from './section'
@@ -30,7 +31,7 @@ function applyAndSave(set: (fn: (s: BoardStore) => BoardStore) => void, fn: (b: 
     })
 }
 
-export const useBoardStore = create<BoardStore>((set) => ({
+export const useBoardStore = create<BoardStore>()(devtools((set) => ({
     ...Board.load(),
 
     addTask: (sectionId, afterId) => applyAndSave(set, (b) => Board.addTask(b, sectionId, afterId)),
@@ -42,4 +43,4 @@ export const useBoardStore = create<BoardStore>((set) => ({
     startEditSection: (sectionId) => applyAndSave(set, (b) => Board.startEditSection(b, sectionId)),
     commitEditSection: (sectionId, title) => applyAndSave(set, (b) => Board.commitEditSection(b, sectionId, title)),
     cancelEditSection: (sectionId) => applyAndSave(set, (b) => Board.cancelEditSection(b, sectionId)),
-}))
+}), { name: 'board' }))

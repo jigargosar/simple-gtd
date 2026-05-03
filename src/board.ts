@@ -63,7 +63,9 @@ const SEED: ReadonlyArray<{
 
 function buildSeedBoard(): Board {
     const sections = Section.makeMany(SEED)
-    const tasks = sections.flatMap((section, i) => Task.makeMany(section.id, SEED[i].tasks))
+    const tasks = sections.flatMap((section, i) =>
+        Task.makeMany(section.id, SEED[i].tasks),
+    )
     return { sections, tasks, editing: null }
 }
 
@@ -102,15 +104,37 @@ function startEditTask(board: Board, sectionId: SectionId, taskId: TaskId): Boar
 
 function addTask(board: Board, sectionId: SectionId, afterId: TaskId | null): Board {
     const result = Task.addNew(tasksIn(board, sectionId), sectionId, afterId)
-    return { ...withTasks(board, sectionId, result.tasks), editing: { tag: 'task', sectionId, taskId: result.newTaskId } }
+    return {
+        ...withTasks(board, sectionId, result.tasks),
+        editing: { tag: 'task', sectionId, taskId: result.newTaskId },
+    }
 }
 
-function commitEditTask(board: Board, sectionId: SectionId, taskId: TaskId, title: string): Board {
-    return { ...withTasks(board, sectionId, Task.updateTitle(tasksIn(board, sectionId), taskId, title)), editing: null }
+function commitEditTask(
+    board: Board,
+    sectionId: SectionId,
+    taskId: TaskId,
+    title: string,
+): Board {
+    return {
+        ...withTasks(
+            board,
+            sectionId,
+            Task.updateTitle(tasksIn(board, sectionId), taskId, title),
+        ),
+        editing: null,
+    }
 }
 
 function cancelEditTask(board: Board, sectionId: SectionId, taskId: TaskId): Board {
-    return { ...withTasks(board, sectionId, Task.removeIfBlank(tasksIn(board, sectionId), taskId)), editing: null }
+    return {
+        ...withTasks(
+            board,
+            sectionId,
+            Task.removeIfBlank(tasksIn(board, sectionId), taskId),
+        ),
+        editing: null,
+    }
 }
 
 function toggleDone(board: Board, sectionId: SectionId, taskId: TaskId): Board {
@@ -124,19 +148,40 @@ function startEditSection(board: Board, sectionId: SectionId): Board {
 }
 
 function commitEditSection(board: Board, sectionId: SectionId, title: string): Board {
-    return { ...board, sections: Section.updateTitle(board.sections, sectionId, title), editing: null }
+    return {
+        ...board,
+        sections: Section.updateTitle(board.sections, sectionId, title),
+        editing: null,
+    }
 }
 
 function cancelEditSection(board: Board, sectionId: SectionId): Board {
-    return { ...board, sections: Section.removeIfBlank(board.sections, sectionId), editing: null }
+    return {
+        ...board,
+        sections: Section.removeIfBlank(board.sections, sectionId),
+        editing: null,
+    }
 }
 
 function moveTask(board: Board, drop: DropResult): Board {
-    return { ...board, tasks: Task.move(board.tasks, drop.taskId, drop.targetSectionId, drop.beforeId, drop.afterId) }
+    return {
+        ...board,
+        tasks: Task.move(
+            board.tasks,
+            drop.taskId,
+            drop.targetSectionId,
+            drop.beforeId,
+            drop.afterId,
+        ),
+    }
 }
 
 function isEditingTask(board: Board, sectionId: SectionId, taskId: TaskId): boolean {
-    return board.editing?.tag === 'task' && board.editing.sectionId === sectionId && board.editing.taskId === taskId
+    return (
+        board.editing?.tag === 'task' &&
+        board.editing.sectionId === sectionId &&
+        board.editing.taskId === taskId
+    )
 }
 
 function isEditingSection(board: Board, sectionId: SectionId): boolean {
@@ -144,8 +189,18 @@ function isEditingSection(board: Board, sectionId: SectionId): boolean {
 }
 
 export const Board = {
-    load, save, tasksIn,
-    startEditTask, addTask, commitEditTask, cancelEditTask, toggleDone, moveTask,
-    startEditSection, commitEditSection, cancelEditSection,
-    isEditingTask, isEditingSection,
+    load,
+    save,
+    tasksIn,
+    startEditTask,
+    addTask,
+    commitEditTask,
+    cancelEditTask,
+    toggleDone,
+    moveTask,
+    startEditSection,
+    commitEditSection,
+    cancelEditSection,
+    isEditingTask,
+    isEditingSection,
 }
