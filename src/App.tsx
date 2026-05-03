@@ -101,11 +101,7 @@ function TaskView({
 }) {
     const isEditing = useBoardStore((s) => Board.isEditingTask(s, sectionId, task.id))
     const isDragging = useDragStore((s) => s.drag?.taskId === task.id)
-    const addTask = useBoardStore((s) => s.addTask)
-    const startEditTask = useBoardStore((s) => s.startEditTask)
-    const commitEditTask = useBoardStore((s) => s.commitEditTask)
-    const cancelEditTask = useBoardStore((s) => s.cancelEditTask)
-    const toggleDone = useBoardStore((s) => s.toggleDone)
+    const { addTask, startEditTask, commitEditTask, cancelEditTask, toggleDone } = useBoardStore((s) => s.actions)
 
     function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
         if (e.key === 'Enter') e.currentTarget.blur()
@@ -171,10 +167,7 @@ function SectionView({
 }) {
     const tasks = useBoardStore(useShallow((s) => Board.tasksIn(s, section.id)))
     const isSectionEditing = useBoardStore((s) => Board.isEditingSection(s, section.id))
-    const addTask = useBoardStore((s) => s.addTask)
-    const startEditSection = useBoardStore((s) => s.startEditSection)
-    const commitEditSection = useBoardStore((s) => s.commitEditSection)
-    const cancelEditSection = useBoardStore((s) => s.cancelEditSection)
+    const { addTask, startEditSection, commitEditSection, cancelEditSection } = useBoardStore((s) => s.actions)
     const draggingTaskId = useDragStore((s) => s.drag?.taskId ?? null)
 
     function handleSectionKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -267,7 +260,7 @@ function AppHeader() {
 
 export default function App() {
     const sections = useBoardStore((s) => s.sections)
-    const moveTask = useBoardStore((s) => s.moveTask)
+    const { moveTask } = useBoardStore((s) => s.actions)
     const isDragging = useDragStore((s) => s.drag !== null)
 
     const { floatRef, startDrag } = useDrag((drop: DropResult) => moveTask(drop))

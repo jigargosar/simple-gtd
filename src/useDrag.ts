@@ -71,7 +71,7 @@ export function useDrag(onDrop: (result: DropResult) => void): {
     floatRef: React.RefObject<HTMLDivElement | null>
     startDrag: (args: StartDragArgs) => void
 } {
-    const setDrag = useDragStore((s) => s.setDrag)
+    const setDrag = useDragStore((s) => s.actions.setDrag)
 
     // dragRef mirrors drag state synchronously — readable inside event handlers
     // without stale closure risk
