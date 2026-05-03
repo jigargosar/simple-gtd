@@ -2,16 +2,23 @@ import { Task } from './task'
 import { Section } from './section'
 import type { Task as TaskType, TaskId } from './task'
 import type { Section as SectionType, SectionId } from './section'
-import type { DropResult } from './useDrag'
 
-export type EditingTask = { tag: 'task'; sectionId: SectionId; taskId: TaskId }
-export type EditingSection = { tag: 'section'; sectionId: SectionId }
-export type Editing = EditingTask | EditingSection
+export type Editing =
+    | { tag: 'task'; taskId: TaskId }
+    | { tag: 'section'; sectionId: SectionId }
 
 export type App = {
     readonly sections: readonly SectionType[]
     readonly tasks: readonly TaskType[]
     readonly editing: Editing | null
+}
+
+export type DropResult = {
+    taskId: TaskId
+    sourceSectionId: SectionId
+    targetSectionId: SectionId
+    beforeId: TaskId | null
+    afterId: TaskId | null
 }
 
 const STORAGE_KEY = 'simple-gtd:v4'
@@ -63,16 +70,14 @@ const SEED: ReadonlyArray<{
 
 function buildSeed(): App {
     const sections = Section.makeMany(SEED)
-    const tasks = sections.flatMap((section, i) =>
-        Task.makeMany(section.id, SEED[i].tasks),
-    )
+    const tasks = sections.flatMap((s, i) => Task.makeMany(s.id, SEED[i].tasks))
     return { sections, tasks, editing: null }
 }
 
 function load(): App {
     try {
         const raw = localStorage.getItem(STORAGE_KEY)
-        // TODO: validate parsed shape before casting — corrupt/old-schema data will blow up downstream
+        // TODO: validate parsed shape before casting
         if (raw !== null) return JSON.parse(raw) as App
     } catch {
         // fall through to seed
@@ -92,51 +97,38 @@ function tasksIn(app: App, sectionId: SectionId): TaskType[] {
     return Task.forSection(app.tasks, sectionId)
 }
 
-function withTasks(app: App, sectionId: SectionId, updated: TaskType[]): App {
-    return { ...app, tasks: Task.replaceForSection(app.tasks, sectionId, updated) }
-}
-
-function startEditTask(app: App, sectionId: SectionId, taskId: TaskId): App {
-    return { ...app, editing: { tag: 'task', sectionId, taskId } }
-}
-
 function addTask(app: App, sectionId: SectionId, afterId: TaskId | null): App {
-    const result = Task.addNew(tasksIn(app, sectionId), sectionId, afterId)
-    return {
-        ...withTasks(app, sectionId, result.tasks),
-        editing: { tag: 'task', sectionId, taskId: result.newTaskId },
-    }
+    const { tasks, newTaskId } = Task.addNew(app.tasks, sectionId, afterId)
+    return { ...app, tasks, editing: { tag: 'task', taskId: newTaskId } }
 }
 
-function commitEditTask(
-    app: App,
-    sectionId: SectionId,
-    taskId: TaskId,
-    title: string,
-): App {
+function startEditTask(app: App, taskId: TaskId): App {
+    return { ...app, editing: { tag: 'task', taskId } }
+}
+
+function commitEditTask(app: App, taskId: TaskId, title: string): App {
+    return { ...app, tasks: Task.updateTitle(app.tasks, taskId, title), editing: null }
+}
+
+function cancelEditTask(app: App, taskId: TaskId): App {
+    return { ...app, tasks: Task.removeIfBlank(app.tasks, taskId), editing: null }
+}
+
+function toggleDone(app: App, taskId: TaskId): App {
+    return { ...app, tasks: Task.toggleDone(app.tasks, taskId) }
+}
+
+function moveTask(app: App, drop: DropResult): App {
     return {
-        ...withTasks(
-            app,
-            sectionId,
-            Task.updateTitle(tasksIn(app, sectionId), taskId, title),
+        ...app,
+        tasks: Task.move(
+            app.tasks,
+            drop.taskId,
+            drop.targetSectionId,
+            drop.beforeId,
+            drop.afterId,
         ),
-        editing: null,
     }
-}
-
-function cancelEditTask(app: App, sectionId: SectionId, taskId: TaskId): App {
-    return {
-        ...withTasks(
-            app,
-            sectionId,
-            Task.removeIfBlank(tasksIn(app, sectionId), taskId),
-        ),
-        editing: null,
-    }
-}
-
-function toggleDone(app: App, sectionId: SectionId, taskId: TaskId): App {
-    return withTasks(app, sectionId, Task.toggleDone(tasksIn(app, sectionId), taskId))
 }
 
 function startEditSection(app: App, sectionId: SectionId): App {
@@ -159,25 +151,8 @@ function cancelEditSection(app: App, sectionId: SectionId): App {
     }
 }
 
-function moveTask(app: App, drop: DropResult): App {
-    return {
-        ...app,
-        tasks: Task.move(
-            app.tasks,
-            drop.taskId,
-            drop.targetSectionId,
-            drop.beforeId,
-            drop.afterId,
-        ),
-    }
-}
-
-function isEditingTask(app: App, sectionId: SectionId, taskId: TaskId): boolean {
-    return (
-        app.editing?.tag === 'task' &&
-        app.editing.sectionId === sectionId &&
-        app.editing.taskId === taskId
-    )
+function isEditingTask(app: App, taskId: TaskId): boolean {
+    return app.editing?.tag === 'task' && app.editing.taskId === taskId
 }
 
 function isEditingSection(app: App, sectionId: SectionId): boolean {
@@ -188,8 +163,8 @@ export const App = {
     load,
     save,
     tasksIn,
-    startEditTask,
     addTask,
+    startEditTask,
     commitEditTask,
     cancelEditTask,
     toggleDone,

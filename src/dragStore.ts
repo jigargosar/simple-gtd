@@ -1,30 +1,33 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type { DragState } from './useDrag'
+import type { SectionId } from './section'
+import type { TaskId } from './task'
 
-type DragStoreState = {
-    drag: DragState | null
+export type BeaconPosition = {
+    beaconId: string
+    sectionId: SectionId
+    beforeId: TaskId | null
+    afterId: TaskId | null
 }
 
-type DragStoreActions = {
+export type DragState = {
+    taskId: TaskId
+    sectionId: SectionId
+    activeBeacon: BeaconPosition | null
+}
+
+type DragStore = {
+    drag: DragState | null
     actions: {
         setDrag: (drag: DragState | null) => void
     }
-}
-
-type DragStore = DragStoreState & DragStoreActions
-
-export function isActiveBeacon(s: DragStoreState, beaconId: string): boolean {
-    return s.drag !== null && s.drag.activeBeacon?.beaconId === beaconId
 }
 
 export const useDragStore = create<DragStore>()(
     devtools(
         (set) => ({
             drag: null,
-            actions: {
-                setDrag: (drag) => set({ drag }),
-            },
+            actions: { setDrag: (drag) => set({ drag }) },
         }),
         { name: 'drag' },
     ),

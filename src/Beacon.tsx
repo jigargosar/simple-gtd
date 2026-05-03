@@ -1,10 +1,6 @@
 import type { TaskId } from './task'
 import type { SectionId } from './section'
-import { useDragStore, isActiveBeacon } from './dragStore'
-
-function optionalAttr(name: string, value: string | null): Record<string, string> {
-    return value !== null ? { [name]: value } : {}
-}
+import { useDragStore } from './dragStore'
 
 function Dot({ side }: { side: 'left' | 'right' }) {
     return (
@@ -25,16 +21,15 @@ export function Beacon({
     beforeId: TaskId | null
     afterId: TaskId | null
 }) {
-    const active = useDragStore((s) => isActiveBeacon(s, id))
-
+    const active = useDragStore((s) => s.drag?.activeBeacon?.beaconId === id)
     const visibility = active ? 'opacity-100' : 'opacity-0'
 
     return (
         <div
             data-beacon={id}
             data-beacon-section={sectionId}
-            {...optionalAttr('data-beacon-before', beforeId)}
-            {...optionalAttr('data-beacon-after', afterId)}
+            data-beacon-before={beforeId ?? undefined}
+            data-beacon-after={afterId ?? undefined}
             className="relative flex h-2 items-center"
         >
             <div

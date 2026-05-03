@@ -3,23 +3,16 @@ import { generateKeyBetween, generateNKeysBetween } from 'fractional-indexing'
 import type { SectionId } from './section'
 
 export type TaskId = string
-export type TaskTitle = string
-export type TaskOrder = string
 
 export type Task = {
     readonly id: TaskId
     readonly sectionId: SectionId
-    readonly title: TaskTitle
+    readonly title: string
     readonly done: boolean
-    readonly order: TaskOrder
+    readonly order: string
 }
 
-function make(
-    sectionId: SectionId,
-    title: TaskTitle,
-    order: TaskOrder,
-    done = false,
-): Task {
+function make(sectionId: SectionId, title: string, order: string, done = false): Task {
     return { id: uuidv4(), sectionId, title, done, order }
 }
 
@@ -31,51 +24,40 @@ function makeMany(
     return seeds.map((s, i) => make(sectionId, s.title, orders[i], s.done))
 }
 
-function addNew(
-    list: readonly Task[],
-    sectionId: SectionId,
-    afterId: TaskId | null,
-): { tasks: Task[]; newTaskId: TaskId } {
-    const afterIndex = afterId === null ? -1 : list.findIndex((t) => t.id === afterId)
-    const insertAt = afterIndex + 1
-    const order = generateKeyBetween(
-        list[insertAt - 1]?.order ?? null,
-        list[insertAt]?.order ?? null,
-    )
-    const newTask = make(sectionId, '', order)
-    return {
-        tasks: [...list.slice(0, insertAt), newTask, ...list.slice(insertAt)],
-        newTaskId: newTask.id,
-    }
-}
-
-function updateTitle(list: readonly Task[], taskId: TaskId, title: TaskTitle): Task[] {
-    const trimmed = title.trim()
-    return trimmed
-        ? list.map((t) => (t.id === taskId ? { ...t, title: trimmed } : t))
-        : list.filter((t) => t.id !== taskId)
-}
-
-function removeIfBlank(list: readonly Task[], taskId: TaskId): Task[] {
-    return list.filter((t) => t.id !== taskId || t.title.trim() !== '')
-}
-
-function toggleDone(list: readonly Task[], taskId: TaskId): Task[] {
-    return list.map((t) => (t.id === taskId ? { ...t, done: !t.done } : t))
-}
-
 function forSection(tasks: readonly Task[], sectionId: SectionId): Task[] {
     return tasks
         .filter((t) => t.sectionId === sectionId)
         .sort((a, b) => (a.order < b.order ? -1 : 1))
 }
 
-function replaceForSection(
+function addNew(
     tasks: readonly Task[],
     sectionId: SectionId,
-    updated: Task[],
-): Task[] {
-    return [...tasks.filter((t) => t.sectionId !== sectionId), ...updated]
+    afterId: TaskId | null,
+): { tasks: Task[]; newTaskId: TaskId } {
+    const section = forSection(tasks, sectionId)
+    const i = afterId === null ? -1 : section.findIndex((t) => t.id === afterId)
+    const order = generateKeyBetween(
+        section[i]?.order ?? null,
+        section[i + 1]?.order ?? null,
+    )
+    const newTask = make(sectionId, '', order)
+    return { tasks: [...tasks, newTask], newTaskId: newTask.id }
+}
+
+function updateTitle(tasks: readonly Task[], taskId: TaskId, title: string): Task[] {
+    const trimmed = title.trim()
+    return trimmed
+        ? tasks.map((t) => (t.id === taskId ? { ...t, title: trimmed } : t))
+        : tasks.filter((t) => t.id !== taskId)
+}
+
+function removeIfBlank(tasks: readonly Task[], taskId: TaskId): Task[] {
+    return tasks.filter((t) => t.id !== taskId || t.title.trim() !== '')
+}
+
+function toggleDone(tasks: readonly Task[], taskId: TaskId): Task[] {
+    return tasks.map((t) => (t.id === taskId ? { ...t, done: !t.done } : t))
 }
 
 function move(
@@ -85,16 +67,10 @@ function move(
     beforeId: TaskId | null,
     afterId: TaskId | null,
 ): Task[] {
-    const targetTasks = forSection(tasks, targetSectionId).filter((t) => t.id !== taskId)
-    const beforeOrder =
-        beforeId !== null
-            ? (targetTasks.find((t) => t.id === beforeId)?.order ?? null)
-            : null
-    const afterOrder =
-        afterId !== null
-            ? (targetTasks.find((t) => t.id === afterId)?.order ?? null)
-            : null
-    const order = generateKeyBetween(beforeOrder, afterOrder)
+    const others = forSection(tasks, targetSectionId).filter((t) => t.id !== taskId)
+    const orderOf = (id: TaskId | null) =>
+        id === null ? null : (others.find((t) => t.id === id)?.order ?? null)
+    const order = generateKeyBetween(orderOf(beforeId), orderOf(afterId))
     return tasks.map((t) =>
         t.id === taskId ? { ...t, sectionId: targetSectionId, order } : t,
     )
@@ -102,11 +78,10 @@ function move(
 
 export const Task = {
     makeMany,
+    forSection,
     addNew,
     updateTitle,
     removeIfBlank,
     toggleDone,
-    forSection,
-    replaceForSection,
     move,
 }
