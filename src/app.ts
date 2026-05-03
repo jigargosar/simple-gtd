@@ -1,15 +1,13 @@
-import { Task } from './task'
-import { Section } from './section'
-import type { Task as TaskType, TaskId } from './task'
-import type { Section as SectionType, SectionId } from './section'
+import { Task, type TaskId } from './task'
+import { Section, type SectionId } from './section'
 
 export type Editing =
     | { tag: 'task'; taskId: TaskId }
     | { tag: 'section'; sectionId: SectionId }
 
 export type App = {
-    readonly sections: readonly SectionType[]
-    readonly tasks: readonly TaskType[]
+    readonly sections: readonly Section[]
+    readonly tasks: readonly Task[]
     readonly editing: Editing | null
 }
 
@@ -93,7 +91,7 @@ function save(app: App): void {
     }
 }
 
-function tasksIn(app: App, sectionId: SectionId): TaskType[] {
+function tasksIn(app: App, sectionId: SectionId): Task[] {
     return Task.forSection(app.tasks, sectionId)
 }
 

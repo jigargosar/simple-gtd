@@ -3,8 +3,8 @@ import type { KeyboardEvent, PointerEvent } from 'react'
 import { GripVerticalIcon, PlusIcon } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
 import { App as AppModel } from './app'
-import type { Task as TaskType, TaskId } from './task'
-import type { Section as SectionType, SectionId } from './section'
+import type { Task as Task, TaskId } from './task'
+import type { Section as Section, SectionId } from './section'
 import { useAppStore } from './appStore'
 import { useDragStore } from './dragStore'
 import { Beacon } from './Beacon'
@@ -50,7 +50,7 @@ function TaskView({
     sectionId,
     onStartDrag,
 }: {
-    task: TaskType
+    task: Task
     sectionId: SectionId
     onStartDrag: StartDragHandler
 }) {
@@ -119,12 +119,15 @@ function TaskView({
 }
 
 function adjacentVisibleIds(
-    tasks: readonly TaskType[],
+    tasks: readonly Task[],
     aroundIdx: number,
     excludeId: TaskId | null,
 ): { beforeId: TaskId | null; afterId: TaskId | null } {
-    const visible = (t: TaskType) => t.id !== excludeId
-    const before = tasks.slice(0, aroundIdx + 1).filter(visible).at(-1)
+    const visible = (t: Task) => t.id !== excludeId
+    const before = tasks
+        .slice(0, aroundIdx + 1)
+        .filter(visible)
+        .at(-1)
     const after = tasks.slice(aroundIdx + 1).find(visible)
     return { beforeId: before?.id ?? null, afterId: after?.id ?? null }
 }
@@ -133,7 +136,7 @@ function SectionView({
     section,
     onStartDrag,
 }: {
-    section: SectionType
+    section: Section
     onStartDrag: StartDragHandler
 }) {
     const tasks = useAppStore(useShallow((s) => AppModel.tasksIn(s, section.id)))
