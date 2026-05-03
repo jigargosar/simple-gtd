@@ -1,10 +1,10 @@
 import { Fragment, type RefObject } from 'react'
 import type { KeyboardEvent, PointerEvent } from 'react'
 import { GripVerticalIcon, PlusIcon } from 'lucide-react'
-import { Board as BoardModel } from './board'
+import { App as AppModel } from './app'
 import type { Task as TaskType, TaskId } from './task'
 import type { Section as SectionType, SectionId } from './section'
-import { useBoardStore } from './boardStore'
+import { useAppStore } from './appStore'
 import { useDragStore } from './dragStore'
 import { Beacon } from './Beacon'
 import { useDrag } from './useDrag'
@@ -15,7 +15,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 function FloatingTask({ floatRef }: { floatRef: RefObject<HTMLDivElement | null> }) {
     const dragTaskId = useDragStore((s) => s.drag?.taskId ?? null)
-    const tasks = useBoardStore((s) => s.tasks)
+    const tasks = useAppStore((s) => s.tasks)
     const draggedTask =
         dragTaskId !== null ? (tasks.find((t) => t.id === dragTaskId) ?? null) : null
 
@@ -68,12 +68,10 @@ function TaskView({
         sectionId: SectionId,
     ) => void
 }) {
-    const isEditing = useBoardStore((s) =>
-        BoardModel.isEditingTask(s, sectionId, task.id),
-    )
+    const isEditing = useAppStore((s) => AppModel.isEditingTask(s, sectionId, task.id))
     const isDragging = useDragStore((s) => s.drag?.taskId === task.id)
     const { addTask, startEditTask, commitEditTask, cancelEditTask, toggleDone } =
-        useBoardStore((s) => s.actions)
+        useAppStore((s) => s.actions)
 
     function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
         if (e.key === 'Enter') e.currentTarget.blur()
@@ -149,12 +147,12 @@ function SectionView({
         sectionId: SectionId,
     ) => void
 }) {
-    const tasks = useBoardStore(useShallow((s) => BoardModel.tasksIn(s, section.id)))
-    const isSectionEditing = useBoardStore((s) =>
-        BoardModel.isEditingSection(s, section.id),
+    const tasks = useAppStore(useShallow((s) => AppModel.tasksIn(s, section.id)))
+    const isSectionEditing = useAppStore((s) =>
+        AppModel.isEditingSection(s, section.id),
     )
     const { addTask, startEditSection, commitEditSection, cancelEditSection } =
-        useBoardStore((s) => s.actions)
+        useAppStore((s) => s.actions)
     const draggingTaskId = useDragStore((s) => s.drag?.taskId ?? null)
 
     function handleSectionKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -256,9 +254,9 @@ function AppHeader() {
     )
 }
 
-export default function Board() {
-    const sections = useBoardStore((s) => s.sections)
-    const { moveTask } = useBoardStore((s) => s.actions)
+export default function App() {
+    const sections = useAppStore((s) => s.sections)
+    const { moveTask } = useAppStore((s) => s.actions)
     const isDragging = useDragStore((s) => s.drag !== null)
 
     const { floatRef, startDrag } = useDrag((drop: DropResult) => moveTask(drop))

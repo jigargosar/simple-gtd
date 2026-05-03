@@ -1,14 +1,12 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import { Board } from './board'
-import type { Board as BoardType } from './board'
+import { App } from './app'
+import type { App as AppType } from './app'
 import type { SectionId } from './section'
 import type { TaskId } from './task'
 import type { DropResult } from './useDrag'
 
-type BoardState = BoardType
-
-type BoardActions = {
+type AppActions = {
     actions: {
         addTask: (sectionId: SectionId, afterId: TaskId | null) => void
         startEditTask: (sectionId: SectionId, taskId: TaskId) => void
@@ -22,51 +20,51 @@ type BoardActions = {
     }
 }
 
-type BoardStore = BoardState & BoardActions
+type AppStore = AppType & AppActions
 
 let saveTimer: ReturnType<typeof setTimeout> | undefined
 
 function applyAndSave(
-    set: (fn: (s: BoardStore) => BoardStore) => void,
-    fn: (b: BoardState) => BoardState,
+    set: (fn: (s: AppStore) => AppStore) => void,
+    fn: (a: AppType) => AppType,
 ) {
     set((s) => {
         const next = fn(s)
         clearTimeout(saveTimer)
-        saveTimer = setTimeout(() => Board.save(next), 100)
+        saveTimer = setTimeout(() => App.save(next), 100)
         return { ...s, ...next }
     })
 }
 
-export const useBoardStore = create<BoardStore>()(
+export const useAppStore = create<AppStore>()(
     devtools(
         (set) => ({
-            ...Board.load(),
+            ...App.load(),
 
             actions: {
                 addTask: (sectionId, afterId) =>
-                    applyAndSave(set, (b) => Board.addTask(b, sectionId, afterId)),
+                    applyAndSave(set, (a) => App.addTask(a, sectionId, afterId)),
                 startEditTask: (sectionId, taskId) =>
-                    applyAndSave(set, (b) => Board.startEditTask(b, sectionId, taskId)),
+                    applyAndSave(set, (a) => App.startEditTask(a, sectionId, taskId)),
                 commitEditTask: (sectionId, taskId, title) =>
-                    applyAndSave(set, (b) =>
-                        Board.commitEditTask(b, sectionId, taskId, title),
+                    applyAndSave(set, (a) =>
+                        App.commitEditTask(a, sectionId, taskId, title),
                     ),
                 cancelEditTask: (sectionId, taskId) =>
-                    applyAndSave(set, (b) => Board.cancelEditTask(b, sectionId, taskId)),
+                    applyAndSave(set, (a) => App.cancelEditTask(a, sectionId, taskId)),
                 toggleDone: (sectionId, taskId) =>
-                    applyAndSave(set, (b) => Board.toggleDone(b, sectionId, taskId)),
-                moveTask: (drop) => applyAndSave(set, (b) => Board.moveTask(b, drop)),
+                    applyAndSave(set, (a) => App.toggleDone(a, sectionId, taskId)),
+                moveTask: (drop) => applyAndSave(set, (a) => App.moveTask(a, drop)),
                 startEditSection: (sectionId) =>
-                    applyAndSave(set, (b) => Board.startEditSection(b, sectionId)),
+                    applyAndSave(set, (a) => App.startEditSection(a, sectionId)),
                 commitEditSection: (sectionId, title) =>
-                    applyAndSave(set, (b) =>
-                        Board.commitEditSection(b, sectionId, title),
+                    applyAndSave(set, (a) =>
+                        App.commitEditSection(a, sectionId, title),
                     ),
                 cancelEditSection: (sectionId) =>
-                    applyAndSave(set, (b) => Board.cancelEditSection(b, sectionId)),
+                    applyAndSave(set, (a) => App.cancelEditSection(a, sectionId)),
             },
         }),
-        { name: 'board' },
+        { name: 'app' },
     ),
 )

@@ -8,7 +8,7 @@ export type EditingTask = { tag: 'task'; sectionId: SectionId; taskId: TaskId }
 export type EditingSection = { tag: 'section'; sectionId: SectionId }
 export type Editing = EditingTask | EditingSection
 
-export type Board = {
+export type App = {
     readonly sections: readonly SectionType[]
     readonly tasks: readonly TaskType[]
     readonly editing: Editing | null
@@ -61,7 +61,7 @@ const SEED: ReadonlyArray<{
     },
 ]
 
-function buildSeedBoard(): Board {
+function buildSeed(): App {
     const sections = Section.makeMany(SEED)
     const tasks = sections.flatMap((section, i) =>
         Task.makeMany(section.id, SEED[i].tasks),
@@ -69,105 +69,101 @@ function buildSeedBoard(): Board {
     return { sections, tasks, editing: null }
 }
 
-function load(): Board {
+function load(): App {
     try {
         const raw = localStorage.getItem(STORAGE_KEY)
         // TODO: validate parsed shape before casting — corrupt/old-schema data will blow up downstream
-        if (raw !== null) return JSON.parse(raw) as Board
+        if (raw !== null) return JSON.parse(raw) as App
     } catch {
         // fall through to seed
     }
-    return buildSeedBoard()
+    return buildSeed()
 }
 
-function save(board: Board): void {
+function save(app: App): void {
     try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(board))
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(app))
     } catch {
         // ignore quota / privacy mode errors
     }
 }
 
-function tasksIn(board: Board, sectionId: SectionId): TaskType[] {
-    return Task.forSection(board.tasks, sectionId)
+function tasksIn(app: App, sectionId: SectionId): TaskType[] {
+    return Task.forSection(app.tasks, sectionId)
 }
 
-function withTasks(board: Board, sectionId: SectionId, updated: TaskType[]): Board {
-    return { ...board, tasks: Task.replaceForSection(board.tasks, sectionId, updated) }
+function withTasks(app: App, sectionId: SectionId, updated: TaskType[]): App {
+    return { ...app, tasks: Task.replaceForSection(app.tasks, sectionId, updated) }
 }
 
-// task editing
-
-function startEditTask(board: Board, sectionId: SectionId, taskId: TaskId): Board {
-    return { ...board, editing: { tag: 'task', sectionId, taskId } }
+function startEditTask(app: App, sectionId: SectionId, taskId: TaskId): App {
+    return { ...app, editing: { tag: 'task', sectionId, taskId } }
 }
 
-function addTask(board: Board, sectionId: SectionId, afterId: TaskId | null): Board {
-    const result = Task.addNew(tasksIn(board, sectionId), sectionId, afterId)
+function addTask(app: App, sectionId: SectionId, afterId: TaskId | null): App {
+    const result = Task.addNew(tasksIn(app, sectionId), sectionId, afterId)
     return {
-        ...withTasks(board, sectionId, result.tasks),
+        ...withTasks(app, sectionId, result.tasks),
         editing: { tag: 'task', sectionId, taskId: result.newTaskId },
     }
 }
 
 function commitEditTask(
-    board: Board,
+    app: App,
     sectionId: SectionId,
     taskId: TaskId,
     title: string,
-): Board {
+): App {
     return {
         ...withTasks(
-            board,
+            app,
             sectionId,
-            Task.updateTitle(tasksIn(board, sectionId), taskId, title),
+            Task.updateTitle(tasksIn(app, sectionId), taskId, title),
         ),
         editing: null,
     }
 }
 
-function cancelEditTask(board: Board, sectionId: SectionId, taskId: TaskId): Board {
+function cancelEditTask(app: App, sectionId: SectionId, taskId: TaskId): App {
     return {
         ...withTasks(
-            board,
+            app,
             sectionId,
-            Task.removeIfBlank(tasksIn(board, sectionId), taskId),
+            Task.removeIfBlank(tasksIn(app, sectionId), taskId),
         ),
         editing: null,
     }
 }
 
-function toggleDone(board: Board, sectionId: SectionId, taskId: TaskId): Board {
-    return withTasks(board, sectionId, Task.toggleDone(tasksIn(board, sectionId), taskId))
+function toggleDone(app: App, sectionId: SectionId, taskId: TaskId): App {
+    return withTasks(app, sectionId, Task.toggleDone(tasksIn(app, sectionId), taskId))
 }
 
-// section editing
-
-function startEditSection(board: Board, sectionId: SectionId): Board {
-    return { ...board, editing: { tag: 'section', sectionId } }
+function startEditSection(app: App, sectionId: SectionId): App {
+    return { ...app, editing: { tag: 'section', sectionId } }
 }
 
-function commitEditSection(board: Board, sectionId: SectionId, title: string): Board {
+function commitEditSection(app: App, sectionId: SectionId, title: string): App {
     return {
-        ...board,
-        sections: Section.updateTitle(board.sections, sectionId, title),
+        ...app,
+        sections: Section.updateTitle(app.sections, sectionId, title),
         editing: null,
     }
 }
 
-function cancelEditSection(board: Board, sectionId: SectionId): Board {
+function cancelEditSection(app: App, sectionId: SectionId): App {
     return {
-        ...board,
-        sections: Section.removeIfBlank(board.sections, sectionId),
+        ...app,
+        sections: Section.removeIfBlank(app.sections, sectionId),
         editing: null,
     }
 }
 
-function moveTask(board: Board, drop: DropResult): Board {
+function moveTask(app: App, drop: DropResult): App {
     return {
-        ...board,
+        ...app,
         tasks: Task.move(
-            board.tasks,
+            app.tasks,
             drop.taskId,
             drop.targetSectionId,
             drop.beforeId,
@@ -176,19 +172,19 @@ function moveTask(board: Board, drop: DropResult): Board {
     }
 }
 
-function isEditingTask(board: Board, sectionId: SectionId, taskId: TaskId): boolean {
+function isEditingTask(app: App, sectionId: SectionId, taskId: TaskId): boolean {
     return (
-        board.editing?.tag === 'task' &&
-        board.editing.sectionId === sectionId &&
-        board.editing.taskId === taskId
+        app.editing?.tag === 'task' &&
+        app.editing.sectionId === sectionId &&
+        app.editing.taskId === taskId
     )
 }
 
-function isEditingSection(board: Board, sectionId: SectionId): boolean {
-    return board.editing?.tag === 'section' && board.editing.sectionId === sectionId
+function isEditingSection(app: App, sectionId: SectionId): boolean {
+    return app.editing?.tag === 'section' && app.editing.sectionId === sectionId
 }
 
-export const Board = {
+export const App = {
     load,
     save,
     tasksIn,
