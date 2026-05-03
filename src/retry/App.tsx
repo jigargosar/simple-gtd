@@ -1,3 +1,16 @@
+type Task = string
+
 export default function App() {
-    return 'Hello World'
+    const tasks = ['Lol', 'Pop']
+    return (
+        <div>
+            {tasks.map((task) => (
+                <ViewTask task={task}></ViewTask>
+            ))}
+        </div>
+    )
+}
+
+function ViewTask({ task }: { task: Task }) {
+    return <div>{task}</div>
 }
