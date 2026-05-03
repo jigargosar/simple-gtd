@@ -1,7 +1,7 @@
 import { Fragment, type RefObject } from 'react'
 import type { KeyboardEvent, PointerEvent } from 'react'
 import { GripVerticalIcon, PlusIcon } from 'lucide-react'
-import { Board } from './board'
+import { Board as BoardModel } from './board'
 import type { Task as TaskType, TaskId } from './task'
 import type { Section as SectionType, SectionId } from './section'
 import { useBoardStore } from './boardStore'
@@ -68,7 +68,7 @@ function TaskView({
         sectionId: SectionId,
     ) => void
 }) {
-    const isEditing = useBoardStore((s) => Board.isEditingTask(s, sectionId, task.id))
+    const isEditing = useBoardStore((s) => BoardModel.isEditingTask(s, sectionId, task.id))
     const isDragging = useDragStore((s) => s.drag?.taskId === task.id)
     const { addTask, startEditTask, commitEditTask, cancelEditTask, toggleDone } =
         useBoardStore((s) => s.actions)
@@ -147,8 +147,8 @@ function SectionView({
         sectionId: SectionId,
     ) => void
 }) {
-    const tasks = useBoardStore(useShallow((s) => Board.tasksIn(s, section.id)))
-    const isSectionEditing = useBoardStore((s) => Board.isEditingSection(s, section.id))
+    const tasks = useBoardStore(useShallow((s) => BoardModel.tasksIn(s, section.id)))
+    const isSectionEditing = useBoardStore((s) => BoardModel.isEditingSection(s, section.id))
     const { addTask, startEditSection, commitEditSection, cancelEditSection } =
         useBoardStore((s) => s.actions)
     const draggingTaskId = useDragStore((s) => s.drag?.taskId ?? null)
@@ -252,7 +252,7 @@ function AppHeader() {
     )
 }
 
-export default function App() {
+export default function Board() {
     const sections = useBoardStore((s) => s.sections)
     const { moveTask } = useBoardStore((s) => s.actions)
     const isDragging = useDragStore((s) => s.drag !== null)
