@@ -14,11 +14,19 @@ export type Task = {
     readonly order: TaskOrder
 }
 
-function make(sectionId: SectionId, title: TaskTitle, order: TaskOrder, done = false): Task {
+function make(
+    sectionId: SectionId,
+    title: TaskTitle,
+    order: TaskOrder,
+    done = false,
+): Task {
     return { id: uuidv4(), sectionId, title, done, order }
 }
 
-function makeMany(sectionId: SectionId, seeds: ReadonlyArray<{ title: string; done?: boolean }>): Task[] {
+function makeMany(
+    sectionId: SectionId,
+    seeds: ReadonlyArray<{ title: string; done?: boolean }>,
+): Task[] {
     const orders = generateNKeysBetween(null, null, seeds.length)
     return seeds.map((s, i) => make(sectionId, s.title, orders[i], s.done))
 }
@@ -62,7 +70,11 @@ function forSection(tasks: readonly Task[], sectionId: SectionId): Task[] {
         .sort((a, b) => (a.order < b.order ? -1 : 1))
 }
 
-function replaceForSection(tasks: readonly Task[], sectionId: SectionId, updated: Task[]): Task[] {
+function replaceForSection(
+    tasks: readonly Task[],
+    sectionId: SectionId,
+    updated: Task[],
+): Task[] {
     return [...tasks.filter((t) => t.sectionId !== sectionId), ...updated]
 }
 
@@ -74,10 +86,27 @@ function move(
     afterId: TaskId | null,
 ): Task[] {
     const targetTasks = forSection(tasks, targetSectionId).filter((t) => t.id !== taskId)
-    const beforeOrder = beforeId !== null ? (targetTasks.find((t) => t.id === beforeId)?.order ?? null) : null
-    const afterOrder = afterId !== null ? (targetTasks.find((t) => t.id === afterId)?.order ?? null) : null
+    const beforeOrder =
+        beforeId !== null
+            ? (targetTasks.find((t) => t.id === beforeId)?.order ?? null)
+            : null
+    const afterOrder =
+        afterId !== null
+            ? (targetTasks.find((t) => t.id === afterId)?.order ?? null)
+            : null
     const order = generateKeyBetween(beforeOrder, afterOrder)
-    return tasks.map((t) => (t.id === taskId ? { ...t, sectionId: targetSectionId, order } : t))
+    return tasks.map((t) =>
+        t.id === taskId ? { ...t, sectionId: targetSectionId, order } : t,
+    )
 }
 
-export const Task = { makeMany, addNew, updateTitle, removeIfBlank, toggleDone, forSection, replaceForSection, move }
+export const Task = {
+    makeMany,
+    addNew,
+    updateTitle,
+    removeIfBlank,
+    toggleDone,
+    forSection,
+    replaceForSection,
+    move,
+}

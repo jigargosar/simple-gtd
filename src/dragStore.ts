@@ -14,9 +14,14 @@ type DragStoreActions = {
 
 type DragStore = DragStoreState & DragStoreActions
 
-export const useDragStore = create<DragStore>()(devtools((set) => ({
-    drag: null,
-    actions: {
-        setDrag: (drag) => set({ drag }),
-    },
-}), { name: 'drag' }))
+export const useDragStore = create<DragStore>()(
+    devtools(
+        (set) => ({
+            drag: null,
+            actions: {
+                setDrag: (drag) => set({ drag }),
+            },
+        }),
+        { name: 'drag' },
+    ),
+)

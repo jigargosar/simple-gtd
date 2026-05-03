@@ -23,7 +23,9 @@ function Beacon({
     beforeId: string | null
     afterId: string | null
 }) {
-    const active = useDragStore((s) => s.drag !== null && s.drag.activeBeacon?.beaconId === id)
+    const active = useDragStore(
+        (s) => s.drag !== null && s.drag.activeBeacon?.beaconId === id,
+    )
 
     return (
         <div
@@ -31,25 +33,53 @@ function Beacon({
             data-beacon-section={sectionId}
             {...(beforeId !== null ? { 'data-beacon-before': beforeId } : {})}
             {...(afterId !== null ? { 'data-beacon-after': afterId } : {})}
-            style={{ position: 'relative', height: 8, display: 'flex', alignItems: 'center' }}
+            style={{
+                position: 'relative',
+                height: 8,
+                display: 'flex',
+                alignItems: 'center',
+            }}
         >
-            <div style={{
-                position: 'absolute', left: 8, right: 8, height: 2,
-                background: 'dodgerblue', borderRadius: 1,
-                opacity: active ? 1 : 0, transition: 'opacity 80ms ease',
-            }} />
-            <div style={{
-                position: 'absolute', left: 2, width: 8, height: 8,
-                borderRadius: '50%', background: 'dodgerblue',
-                top: '50%', transform: 'translateY(-50%)',
-                opacity: active ? 1 : 0, transition: 'opacity 80ms ease',
-            }} />
-            <div style={{
-                position: 'absolute', right: 2, width: 8, height: 8,
-                borderRadius: '50%', background: 'dodgerblue',
-                top: '50%', transform: 'translateY(-50%)',
-                opacity: active ? 1 : 0, transition: 'opacity 80ms ease',
-            }} />
+            <div
+                style={{
+                    position: 'absolute',
+                    left: 8,
+                    right: 8,
+                    height: 2,
+                    background: 'dodgerblue',
+                    borderRadius: 1,
+                    opacity: active ? 1 : 0,
+                    transition: 'opacity 80ms ease',
+                }}
+            />
+            <div
+                style={{
+                    position: 'absolute',
+                    left: 2,
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: 'dodgerblue',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    opacity: active ? 1 : 0,
+                    transition: 'opacity 80ms ease',
+                }}
+            />
+            <div
+                style={{
+                    position: 'absolute',
+                    right: 2,
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: 'dodgerblue',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    opacity: active ? 1 : 0,
+                    transition: 'opacity 80ms ease',
+                }}
+            />
         </div>
     )
 }
@@ -59,7 +89,8 @@ function Beacon({
 function FloatingTask({ floatRef }: { floatRef: RefObject<HTMLDivElement | null> }) {
     const dragTaskId = useDragStore((s) => s.drag?.taskId ?? null)
     const tasks = useBoardStore((s) => s.tasks)
-    const draggedTask = dragTaskId !== null ? tasks.find((t) => t.id === dragTaskId) ?? null : null
+    const draggedTask =
+        dragTaskId !== null ? (tasks.find((t) => t.id === dragTaskId) ?? null) : null
 
     if (draggedTask === null) return null
 
@@ -80,8 +111,15 @@ function FloatingTask({ floatRef }: { floatRef: RefObject<HTMLDivElement | null>
             }}
             className="bg-page flex items-center gap-3 rounded px-4 py-2"
         >
-            <input type="checkbox" checked={draggedTask.done} readOnly className="accent-blue h-4 w-4" />
-            <span className={`flex-1 text-sm leading-relaxed tracking-wide ${draggedTask.done ? 'text-task-muted line-through' : 'text-task'}`}>
+            <input
+                type="checkbox"
+                checked={draggedTask.done}
+                readOnly
+                className="accent-blue h-4 w-4"
+            />
+            <span
+                className={`flex-1 text-sm leading-relaxed tracking-wide ${draggedTask.done ? 'text-task-muted line-through' : 'text-task'}`}
+            >
                 {draggedTask.title}
             </span>
         </div>
@@ -97,11 +135,16 @@ function TaskView({
 }: {
     task: TaskType
     sectionId: SectionId
-    onStartDrag: (e: PointerEvent<HTMLButtonElement>, taskId: TaskId, sectionId: SectionId) => void
+    onStartDrag: (
+        e: PointerEvent<HTMLButtonElement>,
+        taskId: TaskId,
+        sectionId: SectionId,
+    ) => void
 }) {
     const isEditing = useBoardStore((s) => Board.isEditingTask(s, sectionId, task.id))
     const isDragging = useDragStore((s) => s.drag?.taskId === task.id)
-    const { addTask, startEditTask, commitEditTask, cancelEditTask, toggleDone } = useBoardStore((s) => s.actions)
+    const { addTask, startEditTask, commitEditTask, cancelEditTask, toggleDone } =
+        useBoardStore((s) => s.actions)
 
     function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
         if (e.key === 'Enter') e.currentTarget.blur()
@@ -109,14 +152,16 @@ function TaskView({
     }
 
     if (isDragging) {
-        return <div className="bg-page-subtle h-10 rounded border border-dashed border-gray-300 opacity-50" />
+        return (
+            <div className="bg-page-subtle h-10 rounded border border-dashed border-gray-300 opacity-50" />
+        )
     }
 
     return (
         <div className="group/task bg-page relative flex items-center gap-3 rounded px-4 py-2">
             <div className="absolute top-0 left-0 flex h-full -translate-x-full items-center gap-0.5 pr-1 opacity-0 transition-opacity group-hover/task:opacity-100">
                 <button
-                    className="text-label-muted hover:text-label touch-none cursor-grab rounded p-2 transition-colors active:cursor-grabbing"
+                    className="text-label-muted hover:text-label cursor-grab touch-none rounded p-2 transition-colors active:cursor-grabbing"
                     onPointerDown={(e) => onStartDrag(e, task.id, sectionId)}
                 >
                     <GripVerticalIcon size={20} />
@@ -138,7 +183,9 @@ function TaskView({
                 <input
                     autoFocus
                     defaultValue={task.title}
-                    onBlur={(e) => commitEditTask(sectionId, task.id, e.currentTarget.value)}
+                    onBlur={(e) =>
+                        commitEditTask(sectionId, task.id, e.currentTarget.value)
+                    }
                     onKeyDown={handleKeyDown}
                     className="text-task flex-1 bg-transparent text-sm leading-relaxed tracking-wide outline-none"
                 />
@@ -149,7 +196,11 @@ function TaskView({
                         task.done ? 'text-task-muted line-through' : 'text-task'
                     }`}
                 >
-                    {task.title || <span className="text-label-muted italic">empty — click to edit</span>}
+                    {task.title || (
+                        <span className="text-label-muted italic">
+                            empty — click to edit
+                        </span>
+                    )}
                 </span>
             )}
         </div>
@@ -163,11 +214,16 @@ function SectionView({
     onStartDrag,
 }: {
     section: SectionType
-    onStartDrag: (e: PointerEvent<HTMLButtonElement>, taskId: TaskId, sectionId: SectionId) => void
+    onStartDrag: (
+        e: PointerEvent<HTMLButtonElement>,
+        taskId: TaskId,
+        sectionId: SectionId,
+    ) => void
 }) {
     const tasks = useBoardStore(useShallow((s) => Board.tasksIn(s, section.id)))
     const isSectionEditing = useBoardStore((s) => Board.isEditingSection(s, section.id))
-    const { addTask, startEditSection, commitEditSection, cancelEditSection } = useBoardStore((s) => s.actions)
+    const { addTask, startEditSection, commitEditSection, cancelEditSection } =
+        useBoardStore((s) => s.actions)
     const draggingTaskId = useDragStore((s) => s.drag?.taskId ?? null)
 
     function handleSectionKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -198,7 +254,9 @@ function SectionView({
                         <input
                             autoFocus
                             defaultValue={section.title}
-                            onBlur={(e) => commitEditSection(section.id, e.currentTarget.value)}
+                            onBlur={(e) =>
+                                commitEditSection(section.id, e.currentTarget.value)
+                            }
                             onKeyDown={handleSectionKeyDown}
                             className="text-blue w-full bg-transparent text-xs font-semibold tracking-[0.2em] uppercase outline-none"
                         />
@@ -207,7 +265,11 @@ function SectionView({
                             onClick={() => startEditSection(section.id)}
                             className="text-blue cursor-text text-xs font-semibold tracking-[0.2em] uppercase"
                         >
-                            {section.title || <span className="text-label-muted italic normal-case">empty — click to edit</span>}
+                            {section.title || (
+                                <span className="text-label-muted normal-case italic">
+                                    empty — click to edit
+                                </span>
+                            )}
                         </h2>
                     )}
                 </div>
@@ -222,9 +284,12 @@ function SectionView({
                 {tasks.map((task, i) => {
                     const isDraggedSlot = task.id === draggingTaskId
                     const beaconBeforeId = isDraggedSlot
-                        ? (visibleTasks.filter((_, vi) => tasks.indexOf(visibleTasks[vi]) < i).at(-1)?.id ?? null)
+                        ? (visibleTasks
+                              .filter((_, vi) => tasks.indexOf(visibleTasks[vi]) < i)
+                              .at(-1)?.id ?? null)
                         : task.id
-                    const beaconAfterId = visibleTasks.find((t) => tasks.indexOf(t) > i)?.id ?? null
+                    const beaconAfterId =
+                        visibleTasks.find((t) => tasks.indexOf(t) > i)?.id ?? null
 
                     return (
                         <Fragment key={task.id}>
@@ -253,7 +318,9 @@ function AppHeader() {
     return (
         <header className="mx-auto flex max-w-2xl items-baseline gap-3 px-8 py-5">
             <h1 className="text-title text-2xl font-semibold">SimpleGTD</h1>
-            <span className="text-blue text-xs tracking-widest uppercase">Getting Things Done</span>
+            <span className="text-blue text-xs tracking-widest uppercase">
+                Getting Things Done
+            </span>
         </header>
     )
 }
@@ -265,7 +332,11 @@ export default function App() {
 
     const { floatRef, startDrag } = useDrag((drop: DropResult) => moveTask(drop))
 
-    function handleStartDrag(e: PointerEvent<HTMLButtonElement>, taskId: TaskId, sectionId: SectionId) {
+    function handleStartDrag(
+        e: PointerEvent<HTMLButtonElement>,
+        taskId: TaskId,
+        sectionId: SectionId,
+    ) {
         startDrag({ taskId, sectionId, startX: e.clientX, startY: e.clientY })
     }
 

@@ -85,55 +85,62 @@ export function useDrag(onDrop: (result: DropResult) => void): {
         })
     }, [])
 
-    const startDrag = useCallback(({ taskId, sectionId, startX, startY }: StartDragArgs) => {
-        let thresholdCrossed = false
+    const startDrag = useCallback(
+        ({ taskId, sectionId, startX, startY }: StartDragArgs) => {
+            let thresholdCrossed = false
 
-        function onPointerMove(e: PointerEvent) {
-            const dx = e.clientX - startX
-            const dy = e.clientY - startY
+            function onPointerMove(e: PointerEvent) {
+                const dx = e.clientX - startX
+                const dy = e.clientY - startY
 
-            if (!thresholdCrossed) {
-                if (Math.sqrt(dx * dx + dy * dy) < DRAG_THRESHOLD_PX) return
-                thresholdCrossed = true
-                const initial: DragState = { taskId, sectionId, activeBeacon: nearestBeacon(e.clientY) }
-                dragRef.current = initial
-                setDrag(initial)
+                if (!thresholdCrossed) {
+                    if (Math.sqrt(dx * dx + dy * dy) < DRAG_THRESHOLD_PX) return
+                    thresholdCrossed = true
+                    const initial: DragState = {
+                        taskId,
+                        sectionId,
+                        activeBeacon: nearestBeacon(e.clientY),
+                    }
+                    dragRef.current = initial
+                    setDrag(initial)
+                }
+
+                // Move floating element directly — no React re-render
+                if (floatRef.current !== null) {
+                    floatRef.current.style.left = `${e.clientX}px`
+                    floatRef.current.style.top = `${e.clientY}px`
+                }
+
+                // Only update store when beacon changes — drives highlight re-render
+                const next = nearestBeacon(e.clientY)
+                if (!beaconsEqual(next, dragRef.current?.activeBeacon ?? null)) {
+                    const updated: DragState = { taskId, sectionId, activeBeacon: next }
+                    dragRef.current = updated
+                    setDrag(updated)
+                }
             }
 
-            // Move floating element directly — no React re-render
-            if (floatRef.current !== null) {
-                floatRef.current.style.left = `${e.clientX}px`
-                floatRef.current.style.top = `${e.clientY}px`
+            function onPointerUp() {
+                const current = dragRef.current
+                if (current !== null && current.activeBeacon !== null) {
+                    onDrop({
+                        taskId: current.taskId,
+                        sourceSectionId: current.sectionId,
+                        targetSectionId: current.activeBeacon.sectionId,
+                        beforeId: current.activeBeacon.beforeId,
+                        afterId: current.activeBeacon.afterId,
+                    })
+                }
+                dragRef.current = null
+                setDrag(null)
+                document.removeEventListener('pointermove', onPointerMove)
             }
 
-            // Only update store when beacon changes — drives highlight re-render
-            const next = nearestBeacon(e.clientY)
-            if (!beaconsEqual(next, dragRef.current?.activeBeacon ?? null)) {
-                const updated: DragState = { taskId, sectionId, activeBeacon: next }
-                dragRef.current = updated
-                setDrag(updated)
-            }
-        }
-
-        function onPointerUp() {
-            const current = dragRef.current
-            if (current !== null && current.activeBeacon !== null) {
-                onDrop({
-                    taskId: current.taskId,
-                    sourceSectionId: current.sectionId,
-                    targetSectionId: current.activeBeacon.sectionId,
-                    beforeId: current.activeBeacon.beforeId,
-                    afterId: current.activeBeacon.afterId,
-                })
-            }
-            dragRef.current = null
-            setDrag(null)
-            document.removeEventListener('pointermove', onPointerMove)
-        }
-
-        document.addEventListener('pointermove', onPointerMove)
-        document.addEventListener('pointerup', onPointerUp, { once: true })
-    }, [onDrop, setDrag])
+            document.addEventListener('pointermove', onPointerMove)
+            document.addEventListener('pointerup', onPointerUp, { once: true })
+        },
+        [onDrop, setDrag],
+    )
 
     return { floatRef, startDrag }
 }

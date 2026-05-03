@@ -20,7 +20,11 @@ function makeMany(seeds: ReadonlyArray<{ title: string }>): Section[] {
     return seeds.map((s, i) => make(s.title, orders[i]))
 }
 
-function updateTitle(sections: readonly Section[], sectionId: SectionId, title: SectionTitle): Section[] {
+function updateTitle(
+    sections: readonly Section[],
+    sectionId: SectionId,
+    title: SectionTitle,
+): Section[] {
     const trimmed = title.trim()
     return trimmed
         ? sections.map((s) => (s.id === sectionId ? { ...s, title: trimmed } : s))

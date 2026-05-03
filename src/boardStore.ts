@@ -26,7 +26,10 @@ type BoardStore = BoardState & BoardActions
 
 let saveTimer: ReturnType<typeof setTimeout> | undefined
 
-function applyAndSave(set: (fn: (s: BoardStore) => BoardStore) => void, fn: (b: BoardState) => BoardState) {
+function applyAndSave(
+    set: (fn: (s: BoardStore) => BoardStore) => void,
+    fn: (b: BoardState) => BoardState,
+) {
     set((s) => {
         const next = fn(s)
         clearTimeout(saveTimer)
@@ -35,18 +38,35 @@ function applyAndSave(set: (fn: (s: BoardStore) => BoardStore) => void, fn: (b: 
     })
 }
 
-export const useBoardStore = create<BoardStore>()(devtools((set) => ({
-    ...Board.load(),
+export const useBoardStore = create<BoardStore>()(
+    devtools(
+        (set) => ({
+            ...Board.load(),
 
-    actions: {
-        addTask: (sectionId, afterId) => applyAndSave(set, (b) => Board.addTask(b, sectionId, afterId)),
-        startEditTask: (sectionId, taskId) => applyAndSave(set, (b) => Board.startEditTask(b, sectionId, taskId)),
-        commitEditTask: (sectionId, taskId, title) => applyAndSave(set, (b) => Board.commitEditTask(b, sectionId, taskId, title)),
-        cancelEditTask: (sectionId, taskId) => applyAndSave(set, (b) => Board.cancelEditTask(b, sectionId, taskId)),
-        toggleDone: (sectionId, taskId) => applyAndSave(set, (b) => Board.toggleDone(b, sectionId, taskId)),
-        moveTask: (drop) => applyAndSave(set, (b) => Board.moveTask(b, drop)),
-        startEditSection: (sectionId) => applyAndSave(set, (b) => Board.startEditSection(b, sectionId)),
-        commitEditSection: (sectionId, title) => applyAndSave(set, (b) => Board.commitEditSection(b, sectionId, title)),
-        cancelEditSection: (sectionId) => applyAndSave(set, (b) => Board.cancelEditSection(b, sectionId)),
-    },
-}), { name: 'board' }))
+            actions: {
+                addTask: (sectionId, afterId) =>
+                    applyAndSave(set, (b) => Board.addTask(b, sectionId, afterId)),
+                startEditTask: (sectionId, taskId) =>
+                    applyAndSave(set, (b) => Board.startEditTask(b, sectionId, taskId)),
+                commitEditTask: (sectionId, taskId, title) =>
+                    applyAndSave(set, (b) =>
+                        Board.commitEditTask(b, sectionId, taskId, title),
+                    ),
+                cancelEditTask: (sectionId, taskId) =>
+                    applyAndSave(set, (b) => Board.cancelEditTask(b, sectionId, taskId)),
+                toggleDone: (sectionId, taskId) =>
+                    applyAndSave(set, (b) => Board.toggleDone(b, sectionId, taskId)),
+                moveTask: (drop) => applyAndSave(set, (b) => Board.moveTask(b, drop)),
+                startEditSection: (sectionId) =>
+                    applyAndSave(set, (b) => Board.startEditSection(b, sectionId)),
+                commitEditSection: (sectionId, title) =>
+                    applyAndSave(set, (b) =>
+                        Board.commitEditSection(b, sectionId, title),
+                    ),
+                cancelEditSection: (sectionId) =>
+                    applyAndSave(set, (b) => Board.cancelEditSection(b, sectionId)),
+            },
+        }),
+        { name: 'board' },
+    ),
+)
