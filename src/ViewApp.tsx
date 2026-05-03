@@ -2,14 +2,10 @@ import { Fragment, type RefObject } from 'react'
 import type { KeyboardEvent, PointerEvent } from 'react'
 import { GripVerticalIcon, PlusIcon } from 'lucide-react'
 import { useShallow } from 'zustand/react/shallow'
-import { App as AppModel } from './app'
-import type { Task as Task, TaskId } from './task'
-import type { Section as Section, SectionId } from './section'
-import { useAppStore } from './appStore'
-import { useDragStore } from './dragStore'
-import { Beacon } from './Beacon'
-import { useDrag } from './useDrag'
-import type { DropResult } from './app'
+import { App as AppModel, useAppStore } from './useApp'
+import type { Task, TaskId, Section, SectionId, DropResult } from './useApp'
+import { useDragStore, useSortable } from './sortable/useSortable'
+import { Beacon } from './sortable/ViewBeacons'
 
 type StartDragHandler = (
     e: PointerEvent<HTMLButtonElement>,
@@ -237,7 +233,7 @@ export default function App() {
     const { moveTask } = useAppStore((s) => s.actions)
     const isDragging = useDragStore((s) => s.drag !== null)
 
-    const { floatRef, startDrag } = useDrag((drop: DropResult) => moveTask(drop))
+    const { floatRef, startDrag } = useSortable((drop: DropResult) => moveTask(drop))
 
     function handleStartDrag(
         e: PointerEvent<HTMLButtonElement>,

@@ -1,11 +1,24 @@
 import { useCallback, useRef } from 'react'
-import { useDragStore } from './dragStore'
-import type { BeaconPosition } from './dragStore'
-import type { SectionId } from './section'
-import type { TaskId } from './task'
-import type { DropResult } from './app'
+import { create } from 'zustand'
+import { devtools } from 'zustand/middleware'
+import type { SectionId, TaskId, DropResult } from '../useApp'
 
-const DRAG_THRESHOLD_PX = 5
+// ============================================================
+// Types
+// ============================================================
+
+export type BeaconPosition = {
+    beaconId: string
+    sectionId: SectionId
+    beforeId: TaskId | null
+    afterId: TaskId | null
+}
+
+export type DragState = {
+    taskId: TaskId
+    sectionId: SectionId
+    activeBeacon: BeaconPosition | null
+}
 
 export type StartDragArgs = {
     taskId: TaskId
@@ -13,6 +26,33 @@ export type StartDragArgs = {
     startX: number
     startY: number
 }
+
+// ============================================================
+// Store
+// ============================================================
+
+type DragStore = {
+    drag: DragState | null
+    actions: {
+        setDrag: (drag: DragState | null) => void
+    }
+}
+
+export const useDragStore = create<DragStore>()(
+    devtools(
+        (set) => ({
+            drag: null,
+            actions: { setDrag: (drag) => set({ drag }) },
+        }),
+        { name: 'drag' },
+    ),
+)
+
+// ============================================================
+// Hook
+// ============================================================
+
+const DRAG_THRESHOLD_PX = 5
 
 function distanceY(el: HTMLElement, y: number): number {
     const rect = el.getBoundingClientRect()
@@ -47,7 +87,7 @@ function nearestBeacon(y: number): BeaconPosition | null {
     }
 }
 
-export function useDrag(onDrop: (result: DropResult) => void): {
+export function useSortable(onDrop: (result: DropResult) => void): {
     floatRef: React.RefObject<HTMLDivElement | null>
     startDrag: (args: StartDragArgs) => void
 } {

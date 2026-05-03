@@ -1,6 +1,6 @@
-import type { TaskId } from './task'
-import type { SectionId } from './section'
-import { useDragStore } from './dragStore'
+import type { TaskId } from '../useApp'
+import type { SectionId } from '../useApp'
+import { useDragStore } from './useSortable'
 
 function Dot({ side }: { side: 'left' | 'right' }) {
     return (
