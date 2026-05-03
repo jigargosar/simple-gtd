@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
+import { useDragStore } from './dragStore'
 import type { SectionId } from './section'
 import type { TaskId } from './task'
 
@@ -67,24 +68,22 @@ function beaconsEqual(a: BeaconPosition | null, b: BeaconPosition | null): boole
 }
 
 export function useDrag(onDrop: (result: DropResult) => void): {
-    drag: DragState | null
     floatRef: React.RefObject<HTMLDivElement | null>
     startDrag: (args: StartDragArgs) => void
 } {
-    // drag holds only what drives React rendering: taskId, sectionId, activeBeacon
-    const [drag, setDrag] = useState<DragState | null>(null)
+    const setDrag = useDragStore((s) => s.setDrag)
 
-    // dragRef mirrors drag synchronously — readable inside event handlers without
-    // stale closure risk
+    // dragRef mirrors drag state synchronously — readable inside event handlers
+    // without stale closure risk
     const dragRef = useRef<DragState | null>(null)
 
-    // floatRef points to the floating element; we move it via style directly to
-    // avoid re-rendering the whole tree on every pointermove
     const floatRef = useRef<HTMLDivElement | null>(null)
 
     useEffect(() => {
-        dragRef.current = drag
-    })
+        return useDragStore.subscribe((s) => {
+            dragRef.current = s.drag
+        })
+    }, [])
 
     const startDrag = useCallback(({ taskId, sectionId, startX, startY }: StartDragArgs) => {
         let thresholdCrossed = false
@@ -96,8 +95,9 @@ export function useDrag(onDrop: (result: DropResult) => void): {
             if (!thresholdCrossed) {
                 if (Math.sqrt(dx * dx + dy * dy) < DRAG_THRESHOLD_PX) return
                 thresholdCrossed = true
-                setDrag({ taskId, sectionId, activeBeacon: nearestBeacon(e.clientY) })
-                dragRef.current = { taskId, sectionId, activeBeacon: dragRef.current?.activeBeacon ?? null }
+                const initial: DragState = { taskId, sectionId, activeBeacon: nearestBeacon(e.clientY) }
+                dragRef.current = initial
+                setDrag(initial)
             }
 
             // Move floating element directly — no React re-render
@@ -106,7 +106,7 @@ export function useDrag(onDrop: (result: DropResult) => void): {
                 floatRef.current.style.top = `${e.clientY}px`
             }
 
-            // Only update state when beacon changes — drives highlight re-render
+            // Only update store when beacon changes — drives highlight re-render
             const next = nearestBeacon(e.clientY)
             if (!beaconsEqual(next, dragRef.current?.activeBeacon ?? null)) {
                 const updated: DragState = { taskId, sectionId, activeBeacon: next }
@@ -133,7 +133,7 @@ export function useDrag(onDrop: (result: DropResult) => void): {
 
         document.addEventListener('pointermove', onPointerMove)
         document.addEventListener('pointerup', onPointerUp, { once: true })
-    }, [onDrop])
+    }, [onDrop, setDrag])
 
-    return { drag, floatRef, startDrag }
+    return { floatRef, startDrag }
 }

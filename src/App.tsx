@@ -4,9 +4,11 @@ import { GripVerticalIcon, PlusIcon } from 'lucide-react'
 import { Board } from './board'
 import type { Task as TaskType, TaskId } from './task'
 import type { Section as SectionType, SectionId } from './section'
-import { useBoard } from './useBoard'
+import { useBoardStore } from './boardStore'
+import { useDragStore } from './dragStore'
 import { useDrag } from './useDrag'
 import type { DropResult } from './useDrag'
+import { useShallow } from 'zustand/react/shallow'
 
 // ─── Beacon ──────────────────────────────────────────────────────────────────
 
@@ -15,14 +17,14 @@ function Beacon({
     sectionId,
     beforeId,
     afterId,
-    active,
 }: {
     id: string
     sectionId: string
     beforeId: string | null
     afterId: string | null
-    active: boolean
 }) {
+    const active = useDragStore((s) => s.drag !== null && s.drag.activeBeacon?.beaconId === id)
+
     return (
         <div
             data-beacon={id}
@@ -54,7 +56,13 @@ function Beacon({
 
 // ─── FloatingTask ─────────────────────────────────────────────────────────────
 
-function FloatingTask({ task, floatRef }: { task: TaskType; floatRef: RefObject<HTMLDivElement | null> }) {
+function FloatingTask({ floatRef }: { floatRef: RefObject<HTMLDivElement | null> }) {
+    const dragTaskId = useDragStore((s) => s.drag?.taskId ?? null)
+    const tasks = useBoardStore((s) => s.tasks)
+    const draggedTask = dragTaskId !== null ? tasks.find((t) => t.id === dragTaskId) ?? null : null
+
+    if (draggedTask === null) return null
+
     return (
         <div
             ref={floatRef}
@@ -72,9 +80,9 @@ function FloatingTask({ task, floatRef }: { task: TaskType; floatRef: RefObject<
             }}
             className="bg-page flex items-center gap-3 rounded px-4 py-2"
         >
-            <input type="checkbox" checked={task.done} readOnly className="accent-blue h-4 w-4" />
-            <span className={`flex-1 text-sm leading-relaxed tracking-wide ${task.done ? 'text-task-muted line-through' : 'text-task'}`}>
-                {task.title}
+            <input type="checkbox" checked={draggedTask.done} readOnly className="accent-blue h-4 w-4" />
+            <span className={`flex-1 text-sm leading-relaxed tracking-wide ${draggedTask.done ? 'text-task-muted line-through' : 'text-task'}`}>
+                {draggedTask.title}
             </span>
         </div>
     )
@@ -82,26 +90,26 @@ function FloatingTask({ task, floatRef }: { task: TaskType; floatRef: RefObject<
 
 // ─── TaskView ─────────────────────────────────────────────────────────────────
 
-type TaskViewProps = {
+function TaskView({
+    task,
+    sectionId,
+    onStartDrag,
+}: {
     task: TaskType
     sectionId: SectionId
-    isEditing: boolean
-    isDragging: boolean
-    onAdd: (sectionId: SectionId, afterId: TaskId) => void
-    onStartEdit: (sectionId: SectionId, taskId: TaskId) => void
-    onCommitEdit: (sectionId: SectionId, taskId: TaskId, title: string) => void
-    onCancelEdit: (sectionId: SectionId, taskId: TaskId) => void
-    onToggleDone: (sectionId: SectionId, taskId: TaskId) => void
     onStartDrag: (e: PointerEvent<HTMLButtonElement>, taskId: TaskId, sectionId: SectionId) => void
-}
+}) {
+    const isEditing = useBoardStore((s) => Board.isEditingTask(s, sectionId, task.id))
+    const isDragging = useDragStore((s) => s.drag?.taskId === task.id)
+    const addTask = useBoardStore((s) => s.addTask)
+    const startEditTask = useBoardStore((s) => s.startEditTask)
+    const commitEditTask = useBoardStore((s) => s.commitEditTask)
+    const cancelEditTask = useBoardStore((s) => s.cancelEditTask)
+    const toggleDone = useBoardStore((s) => s.toggleDone)
 
-function TaskView({
-    task, sectionId, isEditing, isDragging,
-    onAdd, onStartEdit, onCommitEdit, onCancelEdit, onToggleDone, onStartDrag,
-}: TaskViewProps) {
     function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
         if (e.key === 'Enter') e.currentTarget.blur()
-        else if (e.key === 'Escape') onCancelEdit(sectionId, task.id)
+        else if (e.key === 'Escape') cancelEditTask(sectionId, task.id)
     }
 
     if (isDragging) {
@@ -118,7 +126,7 @@ function TaskView({
                     <GripVerticalIcon size={20} />
                 </button>
                 <button
-                    onClick={() => onAdd(sectionId, task.id)}
+                    onClick={() => addTask(sectionId, task.id)}
                     className="text-label-muted hover:text-blue rounded p-2 transition-colors"
                 >
                     <PlusIcon size={20} />
@@ -127,20 +135,20 @@ function TaskView({
             <input
                 type="checkbox"
                 checked={task.done}
-                onChange={() => onToggleDone(sectionId, task.id)}
+                onChange={() => toggleDone(sectionId, task.id)}
                 className="accent-blue h-4 w-4 cursor-pointer"
             />
             {isEditing ? (
                 <input
                     autoFocus
                     defaultValue={task.title}
-                    onBlur={(e) => onCommitEdit(sectionId, task.id, e.currentTarget.value)}
+                    onBlur={(e) => commitEditTask(sectionId, task.id, e.currentTarget.value)}
                     onKeyDown={handleKeyDown}
                     className="text-task flex-1 bg-transparent text-sm leading-relaxed tracking-wide outline-none"
                 />
             ) : (
                 <span
-                    onClick={() => onStartEdit(sectionId, task.id)}
+                    onClick={() => startEditTask(sectionId, task.id)}
                     className={`flex-1 cursor-text text-sm leading-relaxed tracking-wide ${
                         task.done ? 'text-task-muted line-through' : 'text-task'
                     }`}
@@ -154,34 +162,24 @@ function TaskView({
 
 // ─── SectionView ──────────────────────────────────────────────────────────────
 
-type SectionViewProps = {
-    section: SectionType
-    tasks: TaskType[]
-    draggingTaskId: TaskId | null
-    isSectionEditing: boolean
-    isTaskEditing: (taskId: TaskId) => boolean
-    activeBeaconId: string | null
-    isDragging: boolean
-    onAddTask: (sectionId: SectionId, afterId: TaskId | null) => void
-    onStartEditSection: (sectionId: SectionId) => void
-    onCommitEditSection: (sectionId: SectionId, title: string) => void
-    onCancelEditSection: (sectionId: SectionId) => void
-    onAdd: TaskViewProps['onAdd']
-    onStartEdit: TaskViewProps['onStartEdit']
-    onCommitEdit: TaskViewProps['onCommitEdit']
-    onCancelEdit: TaskViewProps['onCancelEdit']
-    onToggleDone: TaskViewProps['onToggleDone']
-    onStartDrag: TaskViewProps['onStartDrag']
-}
-
 function SectionView({
-    section, tasks, draggingTaskId, isSectionEditing, isTaskEditing, activeBeaconId, isDragging,
-    onAddTask, onStartEditSection, onCommitEditSection, onCancelEditSection,
-    onAdd, onStartEdit, onCommitEdit, onCancelEdit, onToggleDone, onStartDrag,
-}: SectionViewProps) {
+    section,
+    onStartDrag,
+}: {
+    section: SectionType
+    onStartDrag: (e: PointerEvent<HTMLButtonElement>, taskId: TaskId, sectionId: SectionId) => void
+}) {
+    const tasks = useBoardStore(useShallow((s) => Board.tasksIn(s, section.id)))
+    const isSectionEditing = useBoardStore((s) => Board.isEditingSection(s, section.id))
+    const addTask = useBoardStore((s) => s.addTask)
+    const startEditSection = useBoardStore((s) => s.startEditSection)
+    const commitEditSection = useBoardStore((s) => s.commitEditSection)
+    const cancelEditSection = useBoardStore((s) => s.cancelEditSection)
+    const draggingTaskId = useDragStore((s) => s.drag?.taskId ?? null)
+
     function handleSectionKeyDown(e: KeyboardEvent<HTMLInputElement>) {
         if (e.key === 'Enter') e.currentTarget.blur()
-        else if (e.key === 'Escape') onCancelEditSection(section.id)
+        else if (e.key === 'Escape') cancelEditSection(section.id)
     }
 
     // Exclude the dragged task from beacon neighbour computation so its own id
@@ -196,7 +194,7 @@ function SectionView({
                         <GripVerticalIcon size={20} />
                     </button>
                     <button
-                        onClick={() => onAddTask(section.id, null)}
+                        onClick={() => addTask(section.id, null)}
                         className="text-label-muted hover:text-blue rounded p-2 transition-colors"
                     >
                         <PlusIcon size={20} />
@@ -207,13 +205,13 @@ function SectionView({
                         <input
                             autoFocus
                             defaultValue={section.title}
-                            onBlur={(e) => onCommitEditSection(section.id, e.currentTarget.value)}
+                            onBlur={(e) => commitEditSection(section.id, e.currentTarget.value)}
                             onKeyDown={handleSectionKeyDown}
                             className="text-blue w-full bg-transparent text-xs font-semibold tracking-[0.2em] uppercase outline-none"
                         />
                     ) : (
                         <h2
-                            onClick={() => onStartEditSection(section.id)}
+                            onClick={() => startEditSection(section.id)}
                             className="text-blue cursor-text text-xs font-semibold tracking-[0.2em] uppercase"
                         >
                             {section.title || <span className="text-label-muted italic normal-case">empty — click to edit</span>}
@@ -227,13 +225,9 @@ function SectionView({
                     sectionId={section.id}
                     beforeId={null}
                     afterId={visibleTasks[0]?.id ?? null}
-                    active={isDragging && activeBeaconId === `${section.id}:0`}
                 />
                 {tasks.map((task, i) => {
                     const isDraggedSlot = task.id === draggingTaskId
-                    // Beacon sits below this task. Its neighbours are the nearest
-                    // non-dragged tasks on either side in the visible list.
-                    // Find the last visible task at or before i, and first visible task after i.
                     const beaconBeforeId = isDraggedSlot
                         ? (visibleTasks.filter((_, vi) => tasks.indexOf(visibleTasks[vi]) < i).at(-1)?.id ?? null)
                         : task.id
@@ -244,13 +238,6 @@ function SectionView({
                             <TaskView
                                 task={task}
                                 sectionId={section.id}
-                                isEditing={isTaskEditing(task.id)}
-                                isDragging={isDraggedSlot}
-                                onAdd={onAdd}
-                                onStartEdit={onStartEdit}
-                                onCommitEdit={onCommitEdit}
-                                onCancelEdit={onCancelEdit}
-                                onToggleDone={onToggleDone}
                                 onStartDrag={onStartDrag}
                             />
                             <Beacon
@@ -258,7 +245,6 @@ function SectionView({
                                 sectionId={section.id}
                                 beforeId={beaconBeforeId}
                                 afterId={beaconAfterId}
-                                active={isDragging && activeBeaconId === `${section.id}:${i + 1}`}
                             />
                         </Fragment>
                     )
@@ -280,13 +266,11 @@ function AppHeader() {
 }
 
 export default function App() {
-    const { board, actions } = useBoard()
+    const sections = useBoardStore((s) => s.sections)
+    const moveTask = useBoardStore((s) => s.moveTask)
+    const isDragging = useDragStore((s) => s.drag !== null)
 
-    const { drag, floatRef, startDrag } = useDrag((drop: DropResult) => actions.moveTask(drop))
-
-    const activeBeaconId = drag?.activeBeacon?.beaconId ?? null
-    const draggingTaskId = drag?.taskId ?? null
-    const draggedTask = draggingTaskId !== null ? board.tasks.find((t) => t.id === draggingTaskId) ?? null : null
+    const { floatRef, startDrag } = useDrag((drop: DropResult) => moveTask(drop))
 
     function handleStartDrag(e: PointerEvent<HTMLButtonElement>, taskId: TaskId, sectionId: SectionId) {
         startDrag({ taskId, sectionId, startX: e.clientX, startY: e.clientY })
@@ -296,32 +280,15 @@ export default function App() {
         <div className="bg-page text-task min-h-screen">
             <AppHeader />
             <main className="mx-auto flex max-w-2xl flex-col gap-8 px-8 py-10">
-                {board.sections.map((section) => (
+                {sections.map((section) => (
                     <SectionView
                         key={section.id}
                         section={section}
-                        tasks={Board.tasksIn(board, section.id)}
-                        draggingTaskId={draggingTaskId}
-                        isSectionEditing={Board.isEditingSection(board, section.id)}
-                        isTaskEditing={(taskId) => Board.isEditingTask(board, section.id, taskId)}
-                        activeBeaconId={activeBeaconId}
-                        isDragging={drag !== null}
-                        onAddTask={actions.addTask}
-                        onStartEditSection={actions.startEditSection}
-                        onCommitEditSection={actions.commitEditSection}
-                        onCancelEditSection={actions.cancelEditSection}
-                        onAdd={actions.addTask}
-                        onStartEdit={actions.startEditTask}
-                        onCommitEdit={actions.commitEditTask}
-                        onCancelEdit={actions.cancelEditTask}
-                        onToggleDone={actions.toggleDone}
                         onStartDrag={handleStartDrag}
                     />
                 ))}
             </main>
-            {drag !== null && draggedTask !== null && (
-                <FloatingTask task={draggedTask} floatRef={floatRef} />
-            )}
+            {isDragging && <FloatingTask floatRef={floatRef} />}
         </div>
     )
 }

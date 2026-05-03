@@ -21,7 +21,8 @@
     "motion": "12.38.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
-    "uuid": "14.0.0"
+    "uuid": "14.0.0",
+    "zustand": "5.0.12"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",
