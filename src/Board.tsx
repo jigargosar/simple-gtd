@@ -68,7 +68,9 @@ function TaskView({
         sectionId: SectionId,
     ) => void
 }) {
-    const isEditing = useBoardStore((s) => BoardModel.isEditingTask(s, sectionId, task.id))
+    const isEditing = useBoardStore((s) =>
+        BoardModel.isEditingTask(s, sectionId, task.id),
+    )
     const isDragging = useDragStore((s) => s.drag?.taskId === task.id)
     const { addTask, startEditTask, commitEditTask, cancelEditTask, toggleDone } =
         useBoardStore((s) => s.actions)
@@ -148,7 +150,9 @@ function SectionView({
     ) => void
 }) {
     const tasks = useBoardStore(useShallow((s) => BoardModel.tasksIn(s, section.id)))
-    const isSectionEditing = useBoardStore((s) => BoardModel.isEditingSection(s, section.id))
+    const isSectionEditing = useBoardStore((s) =>
+        BoardModel.isEditingSection(s, section.id),
+    )
     const { addTask, startEditSection, commitEditSection, cancelEditSection } =
         useBoardStore((s) => s.actions)
     const draggingTaskId = useDragStore((s) => s.drag?.taskId ?? null)
