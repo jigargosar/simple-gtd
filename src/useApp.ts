@@ -80,22 +80,6 @@ const addNewTask = (
     return { tasks: [...tasks, newTask], newTaskId: newTask.id }
 }
 
-const moveTaskInList = (
-    tasks: readonly Task[],
-    taskId: TaskId,
-    targetSectionId: SectionId,
-    beforeId: TaskId | null,
-    afterId: TaskId | null,
-): Task[] => {
-    const others = tasksInSection(tasks, targetSectionId).filter((t) => t.id !== taskId)
-    const orderOf = (id: TaskId | null) =>
-        id === null ? null : (others.find((t) => t.id === id)?.order ?? null)
-    const order = generateKeyBetween(orderOf(beforeId), orderOf(afterId))
-    return tasks.map((t) =>
-        t.id === taskId ? { ...t, sectionId: targetSectionId, order } : t,
-    )
-}
-
 // Sections
 
 function makeSection(title: string, order: string): Section {
@@ -168,16 +152,15 @@ export const cancelEditTask = (taskId: TaskId) =>
 export const toggleDone = (taskId: TaskId) =>
     updateTaskWithId(taskId, (t) => ({ ...t, done: !t.done }))
 
-export const moveTask = (drop: DropResult) =>
-    useApp.setState((s) => ({
-        tasks: moveTaskInList(
-            s.tasks,
-            drop.taskId,
-            drop.targetSectionId,
-            drop.beforeId,
-            drop.afterId,
-        ),
-    }))
+export const moveTask = ({ taskId, targetSectionId, beforeId, afterId }: DropResult) => {
+    const others = tasksInSection(useApp.getState().tasks, targetSectionId).filter(
+        (t) => t.id !== taskId,
+    )
+    const orderOf = (id: TaskId | null) =>
+        id === null ? null : (others.find((t) => t.id === id)?.order ?? null)
+    const order = generateKeyBetween(orderOf(beforeId), orderOf(afterId))
+    updateTaskWithId(taskId, (t) => ({ ...t, sectionId: targetSectionId, order }))
+}
 
 export const startEditSection = (sectionId: SectionId) =>
     setEditing({ tag: 'section', sectionId })
