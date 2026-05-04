@@ -26,90 +26,64 @@ type StartDragHandler = (
     sectionId: SectionId,
 ) => void
 
-function EditableText({
-    isEditing,
-    value,
-    onStart,
-    onCommit,
-    onCancel,
-    element,
-    displayClass,
-    inputClass,
-    placeholderClass,
-}: {
-    isEditing: boolean
-    value: string
-    onStart: () => void
-    onCommit: (next: string) => void
-    onCancel: () => void
-    element: 'span' | 'h2'
-    displayClass: string
-    inputClass: string
-    placeholderClass?: string
-}) {
+function editKeyDown(onCancel: () => void) {
+    return (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') e.currentTarget.blur()
+        else if (e.key === 'Escape') onCancel()
+    }
+}
+
+function EditableTaskTitle({ task }: { task: Task }) {
+    const isEditing = useIsEditingTask(task.id)
     if (isEditing) {
         return (
             <input
                 autoFocus
-                defaultValue={value}
-                onBlur={(e) => onCommit(e.currentTarget.value)}
-                onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
-                    if (e.key === 'Enter') e.currentTarget.blur()
-                    else if (e.key === 'Escape') onCancel()
-                }}
-                className={inputClass}
+                defaultValue={task.title}
+                onBlur={(e) => commitEditTask(task.id, e.currentTarget.value)}
+                onKeyDown={editKeyDown(() => cancelEditTask(task.id))}
+                className="text-task flex-1 bg-transparent text-sm leading-relaxed tracking-wide outline-none"
             />
         )
     }
-    const placeholder = (
-        <span className={`text-label-muted italic ${placeholderClass ?? ''}`}>
-            empty — click to edit
-        </span>
-    )
-    const content = value || placeholder
-    return element === 'h2' ? (
-        <h2 onClick={onStart} className={displayClass}>
-            {content}
-        </h2>
-    ) : (
-        <span onClick={onStart} className={displayClass}>
-            {content}
+    return (
+        <span
+            onClick={() => startEditTask(task.id)}
+            className={`flex-1 cursor-text text-sm leading-relaxed tracking-wide ${
+                task.done ? 'text-task-muted line-through' : 'text-task'
+            }`}
+        >
+            {task.title || (
+                <span className="text-label-muted italic">empty — click to edit</span>
+            )}
         </span>
     )
 }
 
-function RowActions({
-    variant,
-    onDrag,
-    onAdd,
-}: {
-    variant: 'task' | 'section'
-    onDrag?: (e: PointerEvent<HTMLButtonElement>) => void
-    onAdd: () => void
-}) {
-    const hoverClass =
-        variant === 'task'
-            ? 'group-hover/task:opacity-100'
-            : 'group-hover/section:opacity-100'
+function EditableSectionTitle({ section }: { section: Section }) {
+    const isEditing = useIsEditingSection(section.id)
+    if (isEditing) {
+        return (
+            <input
+                autoFocus
+                defaultValue={section.title}
+                onBlur={(e) => commitEditSection(section.id, e.currentTarget.value)}
+                onKeyDown={editKeyDown(() => cancelEditSection(section.id))}
+                className="text-blue w-full bg-transparent text-xs font-semibold tracking-[0.2em] uppercase outline-none"
+            />
+        )
+    }
     return (
-        <div
-            className={`absolute top-0 left-0 flex h-full -translate-x-full items-center gap-0.5 pr-1 opacity-0 transition-opacity ${hoverClass}`}
+        <h2
+            onClick={() => startEditSection(section.id)}
+            className="text-blue cursor-text text-xs font-semibold tracking-[0.2em] uppercase"
         >
-            {onDrag && (
-                <button
-                    className="text-label-muted hover:text-label cursor-grab touch-none rounded p-2 transition-colors active:cursor-grabbing"
-                    onPointerDown={onDrag}
-                >
-                    <GripVerticalIcon size={20} />
-                </button>
+            {section.title || (
+                <span className="text-label-muted normal-case italic">
+                    empty — click to edit
+                </span>
             )}
-            <button
-                onClick={onAdd}
-                className="text-label-muted hover:text-blue rounded p-2 transition-colors"
-            >
-                <PlusIcon size={20} />
-            </button>
-        </div>
+        </h2>
     )
 }
 
@@ -150,7 +124,6 @@ function TaskView({
     sectionId: SectionId
     onStartDrag: StartDragHandler
 }) {
-    const isEditing = useIsEditingTask(task.id)
     const isDragging = useDragStore((s) => s.drag?.taskId === task.id)
 
     if (isDragging) {
@@ -161,29 +134,27 @@ function TaskView({
 
     return (
         <div className="group/task bg-page relative flex items-center gap-3 rounded px-4 py-2">
-            <RowActions
-                variant="task"
-                onDrag={(e) => onStartDrag(e, task.id, sectionId)}
-                onAdd={() => addTask(sectionId, task.id)}
-            />
+            <div className="absolute top-0 left-0 flex h-full -translate-x-full items-center gap-0.5 pr-1 opacity-0 transition-opacity group-hover/task:opacity-100">
+                <button
+                    onPointerDown={(e) => onStartDrag(e, task.id, sectionId)}
+                    className="text-label-muted hover:text-label cursor-grab touch-none rounded p-2 transition-colors active:cursor-grabbing"
+                >
+                    <GripVerticalIcon size={20} />
+                </button>
+                <button
+                    onClick={() => addTask(sectionId, task.id)}
+                    className="text-label-muted hover:text-blue rounded p-2 transition-colors"
+                >
+                    <PlusIcon size={20} />
+                </button>
+            </div>
             <input
                 type="checkbox"
                 checked={task.done}
                 onChange={() => toggleDone(task.id)}
                 className="accent-blue h-4 w-4 cursor-pointer"
             />
-            <EditableText
-                isEditing={isEditing}
-                value={task.title}
-                onStart={() => startEditTask(task.id)}
-                onCommit={(next) => commitEditTask(task.id, next)}
-                onCancel={() => cancelEditTask(task.id)}
-                element="span"
-                displayClass={`flex-1 cursor-text text-sm leading-relaxed tracking-wide ${
-                    task.done ? 'text-task-muted line-through' : 'text-task'
-                }`}
-                inputClass="text-task flex-1 bg-transparent text-sm leading-relaxed tracking-wide outline-none"
-            />
+            <EditableTaskTitle task={task} />
         </div>
     )
 }
@@ -200,22 +171,18 @@ function beaconNeighbours(
 }
 
 function SectionHeader({ section }: { section: Section }) {
-    const isEditing = useIsEditingSection(section.id)
     return (
         <div className="group/section relative">
-            <RowActions variant="section" onAdd={() => addTask(section.id, null)} />
+            <div className="absolute top-0 left-0 flex h-full -translate-x-full items-center gap-0.5 pr-1 opacity-0 transition-opacity group-hover/section:opacity-100">
+                <button
+                    onClick={() => addTask(section.id, null)}
+                    className="text-label-muted hover:text-blue rounded p-2 transition-colors"
+                >
+                    <PlusIcon size={20} />
+                </button>
+            </div>
             <div className="flex items-center px-4 py-3">
-                <EditableText
-                    isEditing={isEditing}
-                    value={section.title}
-                    onStart={() => startEditSection(section.id)}
-                    onCommit={(next) => commitEditSection(section.id, next)}
-                    onCancel={() => cancelEditSection(section.id)}
-                    element="h2"
-                    displayClass="text-blue cursor-text text-xs font-semibold tracking-[0.2em] uppercase"
-                    inputClass="text-blue w-full bg-transparent text-xs font-semibold tracking-[0.2em] uppercase outline-none"
-                    placeholderClass="normal-case"
-                />
+                <EditableSectionTitle section={section} />
             </div>
         </div>
     )
