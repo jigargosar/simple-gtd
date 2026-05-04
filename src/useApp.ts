@@ -107,6 +107,24 @@ const makeSections = (seeds: ReadonlyArray<{ title: string }>): Section[] => {
     return seeds.map((s, i) => makeSection(s.title, orders[i]))
 }
 
+// Shared
+
+const updateTitleOrRemove = <T extends { id: string; title: string }>(
+    items: readonly T[],
+    id: string,
+    title: string,
+): T[] => {
+    const trimmed = title.trim()
+    return trimmed
+        ? items.map((item) => (item.id === id ? { ...item, title: trimmed } : item))
+        : items.filter((item) => item.id !== id)
+}
+
+const removeIfBlank = <T extends { id: string; title: string }>(
+    items: readonly T[],
+    id: string,
+): T[] => items.filter((item) => item.id !== id || item.title.trim() !== '')
+
 // Store
 
 export const useApp = create<State>()(
@@ -128,19 +146,14 @@ export const startEditTask = (taskId: TaskId) =>
     useApp.setState({ editing: { tag: 'task', taskId } })
 
 export const commitEditTask = (taskId: TaskId, title: string) =>
-    useApp.setState((s) => {
-        const trimmed = title.trim()
-        return {
-            tasks: trimmed
-                ? s.tasks.map((t) => (t.id === taskId ? { ...t, title: trimmed } : t))
-                : s.tasks.filter((t) => t.id !== taskId),
-            editing: null,
-        }
-    })
+    useApp.setState((s) => ({
+        tasks: updateTitleOrRemove(s.tasks, taskId, title),
+        editing: null,
+    }))
 
 export const cancelEditTask = (taskId: TaskId) =>
     useApp.setState((s) => ({
-        tasks: s.tasks.filter((t) => t.id !== taskId || t.title.trim() !== ''),
+        tasks: removeIfBlank(s.tasks, taskId),
         editing: null,
     }))
 
@@ -164,23 +177,14 @@ export const startEditSection = (sectionId: SectionId) =>
     useApp.setState({ editing: { tag: 'section', sectionId } })
 
 export const commitEditSection = (sectionId: SectionId, title: string) =>
-    useApp.setState((s) => {
-        const trimmed = title.trim()
-        return {
-            sections: trimmed
-                ? s.sections.map((sec) =>
-                      sec.id === sectionId ? { ...sec, title: trimmed } : sec,
-                  )
-                : s.sections.filter((sec) => sec.id !== sectionId),
-            editing: null,
-        }
-    })
+    useApp.setState((s) => ({
+        sections: updateTitleOrRemove(s.sections, sectionId, title),
+        editing: null,
+    }))
 
 export const cancelEditSection = (sectionId: SectionId) =>
     useApp.setState((s) => ({
-        sections: s.sections.filter(
-            (sec) => sec.id !== sectionId || sec.title.trim() !== '',
-        ),
+        sections: removeIfBlank(s.sections, sectionId),
         editing: null,
     }))
 
