@@ -1,7 +1,6 @@
 import { v4 as uuidv4 } from 'uuid'
 import { generateKeyBetween, generateNKeysBetween } from 'fractional-indexing'
 import { create } from 'zustand'
-import { devtools } from 'zustand/middleware'
 
 // ============================================================
 // Types
@@ -317,10 +316,7 @@ type AppStore = App & { actions: Actions }
 
 let saveTimer: ReturnType<typeof setTimeout> | undefined
 
-function applyAndSave(
-    set: (fn: (s: AppStore) => AppStore) => void,
-    fn: (a: App) => App,
-) {
+function applyAndSave(set: (fn: (s: AppStore) => AppStore) => void, fn: (a: App) => App) {
     set((s) => {
         const next = fn(s)
         clearTimeout(saveTimer)
@@ -329,31 +325,25 @@ function applyAndSave(
     })
 }
 
-export const useAppStore = create<AppStore>()(
-    devtools(
-        (set) => {
-            const apply = (fn: (a: App) => App) => applyAndSave(set, fn)
-            return {
-                ...App.load(),
-                actions: {
-                    addTask: (sectionId, afterId) =>
-                        apply((a) => App.addTask(a, sectionId, afterId)),
-                    startEditTask: (taskId) => apply((a) => App.startEditTask(a, taskId)),
-                    commitEditTask: (taskId, title) =>
-                        apply((a) => App.commitEditTask(a, taskId, title)),
-                    cancelEditTask: (taskId) =>
-                        apply((a) => App.cancelEditTask(a, taskId)),
-                    toggleDone: (taskId) => apply((a) => App.toggleDone(a, taskId)),
-                    moveTask: (drop) => apply((a) => App.moveTask(a, drop)),
-                    startEditSection: (sectionId) =>
-                        apply((a) => App.startEditSection(a, sectionId)),
-                    commitEditSection: (sectionId, title) =>
-                        apply((a) => App.commitEditSection(a, sectionId, title)),
-                    cancelEditSection: (sectionId) =>
-                        apply((a) => App.cancelEditSection(a, sectionId)),
-                },
-            }
+export const useAppStore = create<AppStore>()((set) => {
+    const apply = (fn: (a: App) => App) => applyAndSave(set, fn)
+    return {
+        ...App.load(),
+        actions: {
+            addTask: (sectionId, afterId) =>
+                apply((a) => App.addTask(a, sectionId, afterId)),
+            startEditTask: (taskId) => apply((a) => App.startEditTask(a, taskId)),
+            commitEditTask: (taskId, title) =>
+                apply((a) => App.commitEditTask(a, taskId, title)),
+            cancelEditTask: (taskId) => apply((a) => App.cancelEditTask(a, taskId)),
+            toggleDone: (taskId) => apply((a) => App.toggleDone(a, taskId)),
+            moveTask: (drop) => apply((a) => App.moveTask(a, drop)),
+            startEditSection: (sectionId) =>
+                apply((a) => App.startEditSection(a, sectionId)),
+            commitEditSection: (sectionId, title) =>
+                apply((a) => App.commitEditSection(a, sectionId, title)),
+            cancelEditSection: (sectionId) =>
+                apply((a) => App.cancelEditSection(a, sectionId)),
         },
-        { name: 'app' },
-    ),
-)
+    }
+})
