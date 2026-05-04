@@ -23,11 +23,11 @@ export type Section = {
     readonly order: string
 }
 
-export type Editing =
+type Editing =
     | { tag: 'task'; taskId: TaskId }
     | { tag: 'section'; sectionId: SectionId }
 
-export type State = {
+type State = {
     readonly sections: readonly Section[]
     readonly tasks: readonly Task[]
     readonly editing: Editing | null
@@ -52,7 +52,7 @@ function makeTask(
     return { id: uuidv4(), sectionId, title, done, order }
 }
 
-export const makeTasks = (
+const makeTasks = (
     sectionId: SectionId,
     seeds: ReadonlyArray<{ title: string; done?: boolean }>,
 ): Task[] => {
@@ -60,12 +60,12 @@ export const makeTasks = (
     return seeds.map((s, i) => makeTask(sectionId, s.title, orders[i], s.done))
 }
 
-export const tasksInSection = (tasks: readonly Task[], sectionId: SectionId): Task[] =>
+const tasksInSection = (tasks: readonly Task[], sectionId: SectionId): Task[] =>
     tasks
         .filter((t) => t.sectionId === sectionId)
         .sort((a, b) => (a.order < b.order ? -1 : 1))
 
-export const addNewTask = (
+const addNewTask = (
     tasks: readonly Task[],
     sectionId: SectionId,
     afterId: TaskId | null,
@@ -80,7 +80,7 @@ export const addNewTask = (
     return { tasks: [...tasks, newTask], newTaskId: newTask.id }
 }
 
-export const moveTaskInList = (
+const moveTaskInList = (
     tasks: readonly Task[],
     taskId: TaskId,
     targetSectionId: SectionId,
@@ -102,7 +102,7 @@ function makeSection(title: string, order: string): Section {
     return { id: uuidv4(), title, order }
 }
 
-export const makeSections = (seeds: ReadonlyArray<{ title: string }>): Section[] => {
+const makeSections = (seeds: ReadonlyArray<{ title: string }>): Section[] => {
     const orders = generateNKeysBetween(null, null, seeds.length)
     return seeds.map((s, i) => makeSection(s.title, orders[i]))
 }
