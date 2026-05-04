@@ -121,61 +121,6 @@ export const makeSections = (
 }
 
 // ============================================================
-// Seed
-// ============================================================
-
-const SEED: ReadonlyArray<{
-    title: string
-    tasks: ReadonlyArray<{ title: string; done?: boolean }>
-}> = [
-    {
-        title: 'Inbox',
-        tasks: [
-            { title: 'Read article on deep work' },
-            { title: "Reply to Sarah's email" },
-            { title: 'Look into new invoicing tool' },
-        ],
-    },
-    {
-        title: 'Next Actions',
-        tasks: [
-            { title: 'Write project proposal' },
-            { title: 'Book dentist appointment', done: true },
-            { title: 'Review pull request #42' },
-        ],
-    },
-    {
-        title: 'Projects',
-        tasks: [
-            { title: 'Launch SimpleGTD v1' },
-            { title: 'Migrate database to Postgres' },
-            { title: 'Redesign onboarding flow', done: true },
-        ],
-    },
-    {
-        title: 'Waiting For',
-        tasks: [
-            { title: 'Contract signature from client' },
-            { title: 'Design assets from Priya' },
-        ],
-    },
-    {
-        title: 'Someday / Maybe',
-        tasks: [
-            { title: 'Learn Rust' },
-            { title: 'Build a keyboard' },
-            { title: 'Read Thinking Fast and Slow' },
-        ],
-    },
-]
-
-function buildSeed(): State {
-    const sections = makeSections(SEED)
-    const tasks = sections.flatMap((s, i) => makeTasks(s.id, SEED[i].tasks))
-    return { sections, tasks, editing: null }
-}
-
-// ============================================================
 // Store
 // ============================================================
 
@@ -274,3 +219,58 @@ export const useIsEditingSection = (sectionId: SectionId) =>
     useApp(
         (s) => s.editing?.tag === 'section' && s.editing.sectionId === sectionId,
     )
+
+// ============================================================
+// Seed
+// ============================================================
+
+function buildSeed(): State {
+    const SEED: ReadonlyArray<{
+        title: string
+        tasks: ReadonlyArray<{ title: string; done?: boolean }>
+    }> = [
+        {
+            title: 'Inbox',
+            tasks: [
+                { title: 'Read article on deep work' },
+                { title: "Reply to Sarah's email" },
+                { title: 'Look into new invoicing tool' },
+            ],
+        },
+        {
+            title: 'Next Actions',
+            tasks: [
+                { title: 'Write project proposal' },
+                { title: 'Book dentist appointment', done: true },
+                { title: 'Review pull request #42' },
+            ],
+        },
+        {
+            title: 'Projects',
+            tasks: [
+                { title: 'Launch SimpleGTD v1' },
+                { title: 'Migrate database to Postgres' },
+                { title: 'Redesign onboarding flow', done: true },
+            ],
+        },
+        {
+            title: 'Waiting For',
+            tasks: [
+                { title: 'Contract signature from client' },
+                { title: 'Design assets from Priya' },
+            ],
+        },
+        {
+            title: 'Someday / Maybe',
+            tasks: [
+                { title: 'Learn Rust' },
+                { title: 'Build a keyboard' },
+                { title: 'Read Thinking Fast and Slow' },
+            ],
+        },
+    ]
+
+    const sections = makeSections(SEED)
+    const tasks = sections.flatMap((s, i) => makeTasks(s.id, SEED[i].tasks))
+    return { sections, tasks, editing: null }
+}
