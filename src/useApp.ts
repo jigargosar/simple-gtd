@@ -4,9 +4,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useShallow } from 'zustand/react/shallow'
 
-// ============================================================
 // Types
-// ============================================================
 
 export type TaskId = string
 export type SectionId = string
@@ -43,9 +41,7 @@ export type DropResult = {
     afterId: TaskId | null
 }
 
-// ============================================================
 // Tasks
-// ============================================================
 
 function makeTask(
     sectionId: SectionId,
@@ -64,10 +60,7 @@ export const makeTasks = (
     return seeds.map((s, i) => makeTask(sectionId, s.title, orders[i], s.done))
 }
 
-export const tasksInSection = (
-    tasks: readonly Task[],
-    sectionId: SectionId,
-): Task[] =>
+export const tasksInSection = (tasks: readonly Task[], sectionId: SectionId): Task[] =>
     tasks
         .filter((t) => t.sectionId === sectionId)
         .sort((a, b) => (a.order < b.order ? -1 : 1))
@@ -94,9 +87,7 @@ export const moveTaskInList = (
     beforeId: TaskId | null,
     afterId: TaskId | null,
 ): Task[] => {
-    const others = tasksInSection(tasks, targetSectionId).filter(
-        (t) => t.id !== taskId,
-    )
+    const others = tasksInSection(tasks, targetSectionId).filter((t) => t.id !== taskId)
     const orderOf = (id: TaskId | null) =>
         id === null ? null : (others.find((t) => t.id === id)?.order ?? null)
     const order = generateKeyBetween(orderOf(beforeId), orderOf(afterId))
@@ -105,24 +96,18 @@ export const moveTaskInList = (
     )
 }
 
-// ============================================================
 // Sections
-// ============================================================
 
 function makeSection(title: string, order: string): Section {
     return { id: uuidv4(), title, order }
 }
 
-export const makeSections = (
-    seeds: ReadonlyArray<{ title: string }>,
-): Section[] => {
+export const makeSections = (seeds: ReadonlyArray<{ title: string }>): Section[] => {
     const orders = generateNKeysBetween(null, null, seeds.length)
     return seeds.map((s, i) => makeSection(s.title, orders[i]))
 }
 
-// ============================================================
 // Store
-// ============================================================
 
 export const useApp = create<State>()(
     persist(() => buildSeed(), {
@@ -131,9 +116,7 @@ export const useApp = create<State>()(
     }),
 )
 
-// ============================================================
 // Actions
-// ============================================================
 
 export const addTask = (sectionId: SectionId, afterId: TaskId | null) =>
     useApp.setState((s) => {
@@ -149,9 +132,7 @@ export const commitEditTask = (taskId: TaskId, title: string) =>
         const trimmed = title.trim()
         return {
             tasks: trimmed
-                ? s.tasks.map((t) =>
-                      t.id === taskId ? { ...t, title: trimmed } : t,
-                  )
+                ? s.tasks.map((t) => (t.id === taskId ? { ...t, title: trimmed } : t))
                 : s.tasks.filter((t) => t.id !== taskId),
             editing: null,
         }
@@ -165,9 +146,7 @@ export const cancelEditTask = (taskId: TaskId) =>
 
 export const toggleDone = (taskId: TaskId) =>
     useApp.setState((s) => ({
-        tasks: s.tasks.map((t) =>
-            t.id === taskId ? { ...t, done: !t.done } : t,
-        ),
+        tasks: s.tasks.map((t) => (t.id === taskId ? { ...t, done: !t.done } : t)),
     }))
 
 export const moveTask = (drop: DropResult) =>
@@ -205,9 +184,7 @@ export const cancelEditSection = (sectionId: SectionId) =>
         editing: null,
     }))
 
-// ============================================================
 // View-side hooks
-// ============================================================
 
 export const useTasksIn = (sectionId: SectionId) =>
     useApp(useShallow((s) => tasksInSection(s.tasks, sectionId)))
@@ -216,13 +193,9 @@ export const useIsEditingTask = (taskId: TaskId) =>
     useApp((s) => s.editing?.tag === 'task' && s.editing.taskId === taskId)
 
 export const useIsEditingSection = (sectionId: SectionId) =>
-    useApp(
-        (s) => s.editing?.tag === 'section' && s.editing.sectionId === sectionId,
-    )
+    useApp((s) => s.editing?.tag === 'section' && s.editing.sectionId === sectionId)
 
-// ============================================================
 // Seed
-// ============================================================
 
 function buildSeed(): State {
     const SEED: ReadonlyArray<{
