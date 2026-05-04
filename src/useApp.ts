@@ -197,6 +197,14 @@ export function useTasksIn(sectionId: SectionId) {
     return useApp(useShallow((s) => tasksInSection(s.tasks, sectionId)))
 }
 
+export function useTask(taskId: TaskId) {
+    return useApp((s) => s.tasks.find((t) => t.id === taskId))
+}
+
+export function useSection(sectionId: SectionId) {
+    return useApp((s) => s.sections.find((sec) => sec.id === sectionId))
+}
+
 export function useIsEditingTask(taskId: TaskId) {
     return useApp((s) => s.editing?.tag === 'task' && s.editing.taskId === taskId)
 }

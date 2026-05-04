@@ -1,9 +1,11 @@
-import { Fragment, type RefObject } from 'react'
-import type { KeyboardEvent, PointerEvent } from 'react'
+import { Fragment } from 'react'
+import type { KeyboardEvent } from 'react'
 import { GripVerticalIcon, PlusIcon } from 'lucide-react'
 import {
     useApp,
     useTasksIn,
+    useTask,
+    useSection,
     useIsEditingTask,
     useIsEditingSection,
     addTask,
@@ -16,15 +18,9 @@ import {
     commitEditSection,
     cancelEditSection,
 } from './useApp'
-import type { Task, TaskId, Section, SectionId } from './useApp'
-import { useDragStore, useSortable } from './sortable/useSortable'
+import type { Task, TaskId, SectionId } from './useApp'
+import { useDragStore } from './sortable/useSortable'
 import { Beacon } from './sortable/ViewBeacons'
-
-type StartDragHandler = (
-    e: PointerEvent<HTMLButtonElement>,
-    taskId: TaskId,
-    sectionId: SectionId,
-) => void
 
 function editKeyDown(onCancel: () => void) {
     return (e: KeyboardEvent<HTMLInputElement>) => {
@@ -33,22 +29,24 @@ function editKeyDown(onCancel: () => void) {
     }
 }
 
-function EditableTaskTitle({ task }: { task: Task }) {
-    const isEditing = useIsEditingTask(task.id)
+function EditableTaskTitle({ taskId }: { taskId: TaskId }) {
+    const task = useTask(taskId)
+    const isEditing = useIsEditingTask(taskId)
+    if (task === undefined) return null
     if (isEditing) {
         return (
             <input
                 autoFocus
                 defaultValue={task.title}
-                onBlur={(e) => commitEditTask(task.id, e.currentTarget.value)}
-                onKeyDown={editKeyDown(() => cancelEditTask(task.id))}
+                onBlur={(e) => commitEditTask(taskId, e.currentTarget.value)}
+                onKeyDown={editKeyDown(() => cancelEditTask(taskId))}
                 className="text-task flex-1 bg-transparent text-sm leading-relaxed tracking-wide outline-none"
             />
         )
     }
     return (
         <span
-            onClick={() => startEditTask(task.id)}
+            onClick={() => startEditTask(taskId)}
             className={`flex-1 cursor-text text-sm leading-relaxed tracking-wide ${
                 task.done ? 'text-task-muted line-through' : 'text-task'
             }`}
@@ -60,22 +58,24 @@ function EditableTaskTitle({ task }: { task: Task }) {
     )
 }
 
-function EditableSectionTitle({ section }: { section: Section }) {
-    const isEditing = useIsEditingSection(section.id)
+function EditableSectionTitle({ sectionId }: { sectionId: SectionId }) {
+    const section = useSection(sectionId)
+    const isEditing = useIsEditingSection(sectionId)
+    if (section === undefined) return null
     if (isEditing) {
         return (
             <input
                 autoFocus
                 defaultValue={section.title}
-                onBlur={(e) => commitEditSection(section.id, e.currentTarget.value)}
-                onKeyDown={editKeyDown(() => cancelEditSection(section.id))}
+                onBlur={(e) => commitEditSection(sectionId, e.currentTarget.value)}
+                onKeyDown={editKeyDown(() => cancelEditSection(sectionId))}
                 className="text-blue w-full bg-transparent text-xs font-semibold tracking-[0.2em] uppercase outline-none"
             />
         )
     }
     return (
         <h2
-            onClick={() => startEditSection(section.id)}
+            onClick={() => startEditSection(sectionId)}
             className="text-blue cursor-text text-xs font-semibold tracking-[0.2em] uppercase"
         >
             {section.title || (
@@ -87,7 +87,8 @@ function EditableSectionTitle({ section }: { section: Section }) {
     )
 }
 
-function FloatingTask({ floatRef }: { floatRef: RefObject<HTMLDivElement | null> }) {
+function FloatingTask() {
+    const setFloatEl = useDragStore((s) => s.actions.setFloatEl)
     const dragTaskId = useDragStore((s) => s.drag?.taskId ?? null)
     const draggedTask = useApp((s) =>
         dragTaskId === null ? null : (s.tasks.find((t) => t.id === dragTaskId) ?? null),
@@ -97,7 +98,7 @@ function FloatingTask({ floatRef }: { floatRef: RefObject<HTMLDivElement | null>
 
     return (
         <div
-            ref={floatRef}
+            ref={setFloatEl}
             className="bg-page pointer-events-none fixed top-0 left-0 z-50 flex min-w-60 -translate-x-1/2 -translate-y-1/2 items-center gap-3 rounded-md px-4 py-2 opacity-90 shadow-2xl"
         >
             <input
@@ -115,16 +116,12 @@ function FloatingTask({ floatRef }: { floatRef: RefObject<HTMLDivElement | null>
     )
 }
 
-function TaskView({
-    task,
-    sectionId,
-    onStartDrag,
-}: {
-    task: Task
-    sectionId: SectionId
-    onStartDrag: StartDragHandler
-}) {
-    const isDragging = useDragStore((s) => s.drag?.taskId === task.id)
+function TaskView({ taskId }: { taskId: TaskId }) {
+    const task = useTask(taskId)
+    const isDragging = useDragStore((s) => s.drag?.taskId === taskId)
+    const startDrag = useDragStore((s) => s.actions.startDrag)
+
+    if (task === undefined) return null
 
     if (isDragging) {
         return (
@@ -136,13 +133,21 @@ function TaskView({
         <div className="group/task bg-page relative flex items-center gap-3 rounded px-4 py-2">
             <div className="absolute top-0 left-0 flex h-full -translate-x-full items-center gap-0.5 pr-1 opacity-0 transition-opacity group-hover/task:opacity-100">
                 <button
-                    onPointerDown={(e) => onStartDrag(e, task.id, sectionId)}
+                    onPointerDown={(e) =>
+                        startDrag({
+                            taskId: task.id,
+                            sectionId: task.sectionId,
+                            startX: e.clientX,
+                            startY: e.clientY,
+                            onDrop: moveTask,
+                        })
+                    }
                     className="text-label-muted hover:text-label cursor-grab touch-none rounded p-2 transition-colors active:cursor-grabbing"
                 >
                     <GripVerticalIcon size={20} />
                 </button>
                 <button
-                    onClick={() => addTask(sectionId, task.id)}
+                    onClick={() => addTask(task.sectionId, task.id)}
                     className="text-label-muted hover:text-blue rounded p-2 transition-colors"
                 >
                     <PlusIcon size={20} />
@@ -154,7 +159,7 @@ function TaskView({
                 onChange={() => toggleDone(task.id)}
                 className="accent-blue h-4 w-4 cursor-pointer"
             />
-            <EditableTaskTitle task={task} />
+            <EditableTaskTitle taskId={task.id} />
         </div>
     )
 }
@@ -170,60 +175,50 @@ function beaconNeighbours(
     return { beforeId: before?.id ?? null, afterId: after?.id ?? null }
 }
 
-function SectionHeader({ section }: { section: Section }) {
+function SectionHeader({ sectionId }: { sectionId: SectionId }) {
     return (
         <div className="group/section relative">
             <div className="absolute top-0 left-0 flex h-full -translate-x-full items-center gap-0.5 pr-1 opacity-0 transition-opacity group-hover/section:opacity-100">
                 <button
-                    onClick={() => addTask(section.id, null)}
+                    onClick={() => addTask(sectionId, null)}
                     className="text-label-muted hover:text-blue rounded p-2 transition-colors"
                 >
                     <PlusIcon size={20} />
                 </button>
             </div>
             <div className="flex items-center px-4 py-3">
-                <EditableSectionTitle section={section} />
+                <EditableSectionTitle sectionId={sectionId} />
             </div>
         </div>
     )
 }
 
-function SectionView({
-    section,
-    onStartDrag,
-}: {
-    section: Section
-    onStartDrag: StartDragHandler
-}) {
-    const tasks = useTasksIn(section.id)
+function SectionView({ sectionId }: { sectionId: SectionId }) {
+    const tasks = useTasksIn(sectionId)
     const draggingId = useDragStore((s) => s.drag?.taskId ?? null)
     const tail = beaconNeighbours(tasks, tasks.length, draggingId)
 
     return (
         <section>
-            <SectionHeader section={section} />
+            <SectionHeader sectionId={sectionId} />
             <div className="flex min-h-2 flex-col">
                 {tasks.map((task, i) => {
                     const { beforeId, afterId } = beaconNeighbours(tasks, i, draggingId)
                     return (
                         <Fragment key={task.id}>
                             <Beacon
-                                id={`${section.id}:${i}`}
-                                sectionId={section.id}
+                                id={`${sectionId}:${i}`}
+                                sectionId={sectionId}
                                 beforeId={beforeId}
                                 afterId={afterId}
                             />
-                            <TaskView
-                                task={task}
-                                sectionId={section.id}
-                                onStartDrag={onStartDrag}
-                            />
+                            <TaskView taskId={task.id} />
                         </Fragment>
                     )
                 })}
                 <Beacon
-                    id={`${section.id}:${tasks.length}`}
-                    sectionId={section.id}
+                    id={`${sectionId}:${tasks.length}`}
+                    sectionId={sectionId}
                     beforeId={tail.beforeId}
                     afterId={tail.afterId}
                 />
@@ -245,29 +240,15 @@ function AppHeader() {
 
 export default function App() {
     const sections = useApp((s) => s.sections)
-    const { floatRef, startDrag } = useSortable(moveTask)
-
-    function handleStartDrag(
-        e: PointerEvent<HTMLButtonElement>,
-        taskId: TaskId,
-        sectionId: SectionId,
-    ) {
-        startDrag({ taskId, sectionId, startX: e.clientX, startY: e.clientY })
-    }
-
     return (
         <div className="bg-page text-task min-h-screen">
             <AppHeader />
             <main className="mx-auto flex max-w-2xl flex-col gap-8 px-8 py-10">
                 {sections.map((section) => (
-                    <SectionView
-                        key={section.id}
-                        section={section}
-                        onStartDrag={handleStartDrag}
-                    />
+                    <SectionView key={section.id} sectionId={section.id} />
                 ))}
             </main>
-            <FloatingTask floatRef={floatRef} />
+            <FloatingTask />
         </div>
     )
 }
