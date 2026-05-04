@@ -136,6 +136,14 @@ export const useApp = create<State>()(
 
 // Actions
 
+const mapTasks = (fn: (t: Task) => Task) =>
+    useApp.setState((s) => ({ tasks: s.tasks.map(fn) }))
+
+const updateTaskWithId = (taskId: TaskId, fn: (t: Task) => Task) =>
+    mapTasks((t) => (t.id === taskId ? fn(t) : t))
+
+const setEditing = (editing: Editing | null) => useApp.setState({ editing })
+
 export const addTask = (sectionId: SectionId, afterId: TaskId | null) =>
     useApp.setState((s) => {
         const { tasks, newTaskId } = addNewTask(s.tasks, sectionId, afterId)
@@ -143,7 +151,7 @@ export const addTask = (sectionId: SectionId, afterId: TaskId | null) =>
     })
 
 export const startEditTask = (taskId: TaskId) =>
-    useApp.setState({ editing: { tag: 'task', taskId } })
+    setEditing({ tag: 'task', taskId })
 
 export const commitEditTask = (taskId: TaskId, title: string) =>
     useApp.setState((s) => ({
@@ -158,9 +166,7 @@ export const cancelEditTask = (taskId: TaskId) =>
     }))
 
 export const toggleDone = (taskId: TaskId) =>
-    useApp.setState((s) => ({
-        tasks: s.tasks.map((t) => (t.id === taskId ? { ...t, done: !t.done } : t)),
-    }))
+    updateTaskWithId(taskId, (t) => ({ ...t, done: !t.done }))
 
 export const moveTask = (drop: DropResult) =>
     useApp.setState((s) => ({
@@ -174,7 +180,7 @@ export const moveTask = (drop: DropResult) =>
     }))
 
 export const startEditSection = (sectionId: SectionId) =>
-    useApp.setState({ editing: { tag: 'section', sectionId } })
+    setEditing({ tag: 'section', sectionId })
 
 export const commitEditSection = (sectionId: SectionId, title: string) =>
     useApp.setState((s) => ({
