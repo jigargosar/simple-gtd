@@ -1,8 +1,21 @@
 import { Fragment, type RefObject } from 'react'
 import type { KeyboardEvent, PointerEvent } from 'react'
 import { GripVerticalIcon, PlusIcon } from 'lucide-react'
-import { useShallow } from 'zustand/react/shallow'
-import { App as AppModel, useAppStore } from './useApp'
+import {
+    useApp,
+    useTasksIn,
+    useIsEditingTask,
+    useIsEditingSection,
+    addTask,
+    startEditTask,
+    commitEditTask,
+    cancelEditTask,
+    toggleDone,
+    moveTask,
+    startEditSection,
+    commitEditSection,
+    cancelEditSection,
+} from './useApp'
 import type { Task, TaskId, Section, SectionId, DropResult } from './useApp'
 import { useDragStore, useSortable } from './sortable/useSortable'
 import { Beacon } from './sortable/ViewBeacons'
@@ -15,7 +28,7 @@ type StartDragHandler = (
 
 function FloatingTask({ floatRef }: { floatRef: RefObject<HTMLDivElement | null> }) {
     const dragTaskId = useDragStore((s) => s.drag?.taskId ?? null)
-    const draggedTask = useAppStore((s) =>
+    const draggedTask = useApp((s) =>
         dragTaskId === null ? null : (s.tasks.find((t) => t.id === dragTaskId) ?? null),
     )
 
@@ -50,10 +63,8 @@ function TaskView({
     sectionId: SectionId
     onStartDrag: StartDragHandler
 }) {
-    const isEditing = useAppStore((s) => AppModel.isEditingTask(s, task.id))
+    const isEditing = useIsEditingTask(task.id)
     const isDragging = useDragStore((s) => s.drag?.taskId === task.id)
-    const { addTask, startEditTask, commitEditTask, cancelEditTask, toggleDone } =
-        useAppStore((s) => s.actions)
 
     function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
         if (e.key === 'Enter') e.currentTarget.blur()
@@ -135,10 +146,8 @@ function SectionView({
     section: Section
     onStartDrag: StartDragHandler
 }) {
-    const tasks = useAppStore(useShallow((s) => AppModel.tasksIn(s, section.id)))
-    const isEditing = useAppStore((s) => AppModel.isEditingSection(s, section.id))
-    const { addTask, startEditSection, commitEditSection, cancelEditSection } =
-        useAppStore((s) => s.actions)
+    const tasks = useTasksIn(section.id)
+    const isEditing = useIsEditingSection(section.id)
     const draggingId = useDragStore((s) => s.drag?.taskId ?? null)
 
     function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -229,8 +238,7 @@ function AppHeader() {
 }
 
 export default function App() {
-    const sections = useAppStore((s) => s.sections)
-    const { moveTask } = useAppStore((s) => s.actions)
+    const sections = useApp((s) => s.sections)
     const isDragging = useDragStore((s) => s.drag !== null)
 
     const { floatRef, startDrag } = useSortable((drop: DropResult) => moveTask(drop))
