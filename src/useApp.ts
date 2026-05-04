@@ -23,9 +23,7 @@ export type Section = {
     readonly order: string
 }
 
-type Editing =
-    | { tag: 'task'; taskId: TaskId }
-    | { tag: 'section'; sectionId: SectionId }
+type Editing = { tag: 'task'; taskId: TaskId } | { tag: 'section'; sectionId: SectionId }
 
 type State = {
     readonly sections: readonly Section[]
@@ -52,31 +50,33 @@ function makeTask(
     return { id: uuidv4(), sectionId, title, done, order }
 }
 
-const makeTasks = (
+function makeTasks(
     sectionId: SectionId,
     seeds: ReadonlyArray<{ title: string; done?: boolean }>,
-): Task[] => {
+): Task[] {
     const orders = generateNKeysBetween(null, null, seeds.length)
     return seeds.map((s, i) => makeTask(sectionId, s.title, orders[i], s.done))
 }
 
-const tasksInSection = (tasks: readonly Task[], sectionId: SectionId): Task[] =>
-    tasks
+function tasksInSection(tasks: readonly Task[], sectionId: SectionId): Task[] {
+    return tasks
         .filter((t) => t.sectionId === sectionId)
         .sort((a, b) => (a.order < b.order ? -1 : 1))
+}
 
-const addNewTask = (
+function addNewTask(
     tasks: readonly Task[],
     sectionId: SectionId,
     afterId: TaskId | null,
-): { tasks: Task[]; newTaskId: TaskId } => {
+): { tasks: Task[]; newTaskId: TaskId } {
     const section = tasksInSection(tasks, sectionId)
+
     const i = afterId === null ? -1 : section.findIndex((t) => t.id === afterId)
-    const order = generateKeyBetween(
-        section[i]?.order ?? null,
-        section[i + 1]?.order ?? null,
-    )
+
+    const order = generateKeyBetween(section[i]?.order, section[i + 1]?.order)
+
     const newTask = makeTask(sectionId, '', order)
+
     return { tasks: [...tasks, newTask], newTaskId: newTask.id }
 }
 
@@ -86,28 +86,30 @@ function makeSection(title: string, order: string): Section {
     return { id: uuidv4(), title, order }
 }
 
-const makeSections = (seeds: ReadonlyArray<{ title: string }>): Section[] => {
+function makeSections(seeds: ReadonlyArray<{ title: string }>): Section[] {
     const orders = generateNKeysBetween(null, null, seeds.length)
     return seeds.map((s, i) => makeSection(s.title, orders[i]))
 }
 
 // Shared
 
-const updateTitleOrRemove = <T extends { id: string; title: string }>(
+function updateTitleOrRemove<T extends { id: string; title: string }>(
     items: readonly T[],
     id: string,
     title: string,
-): T[] => {
+): T[] {
     const trimmed = title.trim()
     return trimmed
         ? items.map((item) => (item.id === id ? { ...item, title: trimmed } : item))
         : items.filter((item) => item.id !== id)
 }
 
-const removeIfBlank = <T extends { id: string; title: string }>(
+function removeIfBlank<T extends { id: string; title: string }>(
     items: readonly T[],
     id: string,
-): T[] => items.filter((item) => item.id !== id || item.title.trim() !== '')
+): T[] {
+    return items.filter((item) => item.id !== id || item.title.trim() !== '')
+}
 
 // Store
 
@@ -120,39 +122,48 @@ export const useApp = create<State>()(
 
 // Actions
 
-const mapTasks = (fn: (t: Task) => Task) =>
+function mapTasks(fn: (t: Task) => Task) {
     useApp.setState((s) => ({ tasks: s.tasks.map(fn) }))
+}
 
-const updateTaskWithId = (taskId: TaskId, fn: (t: Task) => Task) =>
+function updateTaskWithId(taskId: TaskId, fn: (t: Task) => Task) {
     mapTasks((t) => (t.id === taskId ? fn(t) : t))
+}
 
-const setEditing = (editing: Editing | null) => useApp.setState({ editing })
+function setEditing(editing: Editing | null) {
+    useApp.setState({ editing })
+}
 
-export const addTask = (sectionId: SectionId, afterId: TaskId | null) =>
+export function addTask(sectionId: SectionId, afterId: TaskId | null) {
     useApp.setState((s) => {
         const { tasks, newTaskId } = addNewTask(s.tasks, sectionId, afterId)
         return { tasks, editing: { tag: 'task', taskId: newTaskId } }
     })
+}
 
-export const startEditTask = (taskId: TaskId) =>
+export function startEditTask(taskId: TaskId) {
     setEditing({ tag: 'task', taskId })
+}
 
-export const commitEditTask = (taskId: TaskId, title: string) =>
+export function commitEditTask(taskId: TaskId, title: string) {
     useApp.setState((s) => ({
         tasks: updateTitleOrRemove(s.tasks, taskId, title),
         editing: null,
     }))
+}
 
-export const cancelEditTask = (taskId: TaskId) =>
+export function cancelEditTask(taskId: TaskId) {
     useApp.setState((s) => ({
         tasks: removeIfBlank(s.tasks, taskId),
         editing: null,
     }))
+}
 
-export const toggleDone = (taskId: TaskId) =>
+export function toggleDone(taskId: TaskId) {
     updateTaskWithId(taskId, (t) => ({ ...t, done: !t.done }))
+}
 
-export const moveTask = ({ taskId, targetSectionId, beforeId, afterId }: DropResult) => {
+export function moveTask({ taskId, targetSectionId, beforeId, afterId }: DropResult) {
     const others = tasksInSection(useApp.getState().tasks, targetSectionId).filter(
         (t) => t.id !== taskId,
     )
@@ -162,31 +173,39 @@ export const moveTask = ({ taskId, targetSectionId, beforeId, afterId }: DropRes
     updateTaskWithId(taskId, (t) => ({ ...t, sectionId: targetSectionId, order }))
 }
 
-export const startEditSection = (sectionId: SectionId) =>
+export function startEditSection(sectionId: SectionId) {
     setEditing({ tag: 'section', sectionId })
+}
 
-export const commitEditSection = (sectionId: SectionId, title: string) =>
+export function commitEditSection(sectionId: SectionId, title: string) {
     useApp.setState((s) => ({
         sections: updateTitleOrRemove(s.sections, sectionId, title),
         editing: null,
     }))
+}
 
-export const cancelEditSection = (sectionId: SectionId) =>
+export function cancelEditSection(sectionId: SectionId) {
     useApp.setState((s) => ({
         sections: removeIfBlank(s.sections, sectionId),
         editing: null,
     }))
+}
 
 // View-side hooks
 
-export const useTasksIn = (sectionId: SectionId) =>
-    useApp(useShallow((s) => tasksInSection(s.tasks, sectionId)))
+export function useTasksIn(sectionId: SectionId) {
+    return useApp(useShallow((s) => tasksInSection(s.tasks, sectionId)))
+}
 
-export const useIsEditingTask = (taskId: TaskId) =>
-    useApp((s) => s.editing?.tag === 'task' && s.editing.taskId === taskId)
+export function useIsEditingTask(taskId: TaskId) {
+    return useApp((s) => s.editing?.tag === 'task' && s.editing.taskId === taskId)
+}
 
-export const useIsEditingSection = (sectionId: SectionId) =>
-    useApp((s) => s.editing?.tag === 'section' && s.editing.sectionId === sectionId)
+export function useIsEditingSection(sectionId: SectionId) {
+    return useApp(
+        (s) => s.editing?.tag === 'section' && s.editing.sectionId === sectionId,
+    )
+}
 
 // Seed
 
