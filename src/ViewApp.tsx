@@ -29,21 +29,23 @@ function editKeyDown(onCancel: () => void) {
     }
 }
 
-function EditableTaskTitle({ taskId }: { taskId: TaskId }) {
+function TaskTitleInput({ taskId }: { taskId: TaskId }) {
     const task = useTask(taskId)
-    const isEditing = useIsEditingTask(taskId)
     if (task === undefined) return null
-    if (isEditing) {
-        return (
-            <input
-                autoFocus
-                defaultValue={task.title}
-                onBlur={(e) => commitEditTask(taskId, e.currentTarget.value)}
-                onKeyDown={editKeyDown(() => cancelEditTask(taskId))}
-                className="text-task flex-1 bg-transparent text-sm leading-relaxed tracking-wide outline-none"
-            />
-        )
-    }
+    return (
+        <input
+            autoFocus
+            defaultValue={task.title}
+            onBlur={(e) => commitEditTask(taskId, e.currentTarget.value)}
+            onKeyDown={editKeyDown(() => cancelEditTask(taskId))}
+            className="text-task flex-1 bg-transparent text-sm leading-relaxed tracking-wide outline-none"
+        />
+    )
+}
+
+function TaskTitleDisplay({ taskId }: { taskId: TaskId }) {
+    const task = useTask(taskId)
+    if (task === undefined) return null
     return (
         <span
             onClick={() => startEditTask(taskId)}
@@ -58,21 +60,23 @@ function EditableTaskTitle({ taskId }: { taskId: TaskId }) {
     )
 }
 
-function EditableSectionTitle({ sectionId }: { sectionId: SectionId }) {
+function SectionTitleInput({ sectionId }: { sectionId: SectionId }) {
     const section = useSection(sectionId)
-    const isEditing = useIsEditingSection(sectionId)
     if (section === undefined) return null
-    if (isEditing) {
-        return (
-            <input
-                autoFocus
-                defaultValue={section.title}
-                onBlur={(e) => commitEditSection(sectionId, e.currentTarget.value)}
-                onKeyDown={editKeyDown(() => cancelEditSection(sectionId))}
-                className="text-blue w-full bg-transparent text-xs font-semibold tracking-[0.2em] uppercase outline-none"
-            />
-        )
-    }
+    return (
+        <input
+            autoFocus
+            defaultValue={section.title}
+            onBlur={(e) => commitEditSection(sectionId, e.currentTarget.value)}
+            onKeyDown={editKeyDown(() => cancelEditSection(sectionId))}
+            className="text-blue w-full bg-transparent text-xs font-semibold tracking-[0.2em] uppercase outline-none"
+        />
+    )
+}
+
+function SectionTitleDisplay({ sectionId }: { sectionId: SectionId }) {
+    const section = useSection(sectionId)
+    if (section === undefined) return null
     return (
         <h2
             onClick={() => startEditSection(sectionId)}
@@ -118,6 +122,7 @@ function FloatingTask() {
 
 function TaskView({ taskId }: { taskId: TaskId }) {
     const task = useTask(taskId)
+    const isEditing = useIsEditingTask(taskId)
     const isDragging = useDragStore((s) => s.drag?.taskId === taskId)
     const startDrag = useDragStore((s) => s.actions.startDrag)
 
@@ -159,7 +164,11 @@ function TaskView({ taskId }: { taskId: TaskId }) {
                 onChange={() => toggleDone(task.id)}
                 className="accent-blue h-4 w-4 cursor-pointer"
             />
-            <EditableTaskTitle taskId={task.id} />
+            {isEditing ? (
+                <TaskTitleInput taskId={taskId} />
+            ) : (
+                <TaskTitleDisplay taskId={taskId} />
+            )}
         </div>
     )
 }
@@ -176,6 +185,7 @@ function beaconNeighbours(
 }
 
 function SectionHeader({ sectionId }: { sectionId: SectionId }) {
+    const isEditing = useIsEditingSection(sectionId)
     return (
         <div className="group/section relative">
             <div className="absolute top-0 left-0 flex h-full -translate-x-full items-center gap-0.5 pr-1 opacity-0 transition-opacity group-hover/section:opacity-100">
@@ -187,7 +197,11 @@ function SectionHeader({ sectionId }: { sectionId: SectionId }) {
                 </button>
             </div>
             <div className="flex items-center px-4 py-3">
-                <EditableSectionTitle sectionId={sectionId} />
+                {isEditing ? (
+                    <SectionTitleInput sectionId={sectionId} />
+                ) : (
+                    <SectionTitleDisplay sectionId={sectionId} />
+                )}
             </div>
         </div>
     )
